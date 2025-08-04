@@ -17,6 +17,11 @@ export class groupCreateRequest{
     participantIds!: number[]
     isGroup= true
     createAt!: Date
+    constructor(model: any){
+        this.name= model.name;
+        this.participantIds= model.participantIds;
+        this.createAt= model.createAt;
+    }
 }
 
 export class conversationCreateRequest{
@@ -25,4 +30,9 @@ export class conversationCreateRequest{
     isGroup= false
     createAt!:Date
 
+    constructor(model:any){
+        this.participantIds= model.participantIds;
+        this.createAt= model.createAt;
+    }
+    
 }

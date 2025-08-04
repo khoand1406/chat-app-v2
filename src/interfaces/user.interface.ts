@@ -1,6 +1,6 @@
 import { Optional } from "sequelize";
 export interface UserAttributes{
-    id?: number
+    id: number
     userName: string
     email: string
     passwordHash: string
@@ -8,3 +8,10 @@ export interface UserAttributes{
 }
 
 export type UserCreationAttributes= Optional<UserAttributes, "id">
+
+export interface UserConversationAttributes {
+  id: number;
+  conversationId: number;
+  userId: number;
+  joinAt: Date;
+}

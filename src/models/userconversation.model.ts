@@ -1,22 +1,26 @@
-import { AllowNull, Column, DataType, ForeignKey, Model, Table } from "sequelize-typescript";
-import { Conversation } from "./conversation.model";
-import { User } from "./user.model";
+import {
+  Column,
+  DataType,
+  Model,
+  Table,
+} from 'sequelize-typescript';
 
-@Table({tableName: 'Users_Conversations'})
-export class UserConversation extends Model<UserConversation>{
+@Table
+export class UserConversation extends Model {
+  @Column({
+    type: DataType.INTEGER,
+    primaryKey: true,
+    autoIncrement: true,
+    allowNull: false,
+  })
+  id!: number;
 
-    @Column({type: DataType.INTEGER, unique: true, primaryKey: true, autoIncrement: true, allowNull: false})
-    id!:number
+  @Column({ type: DataType.INTEGER, allowNull: false })
+  userId!: number;
 
-    @ForeignKey(()=> Conversation)
-    @Column({type: DataType.INTEGER, allowNull: true})
-    conversationId!: number
+  @Column({ type: DataType.INTEGER, allowNull: false })
+  conversationId!: number;
 
-    @ForeignKey(()=> User)
-    @Column({type:DataType.INTEGER, allowNull: true})
-    userId!:number
-
-    @Column({type:DataType.DATE, allowNull: false})
-    joinAt!: Date;
-    
+  @Column({ type: DataType.DATE, allowNull: false })
+  joinAt!: Date;
 }

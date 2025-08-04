@@ -1,26 +1,22 @@
-import { Connection, ConnectionConfiguration } from 'tedious';
+import { Sequelize } from "sequelize-typescript";
+import { models } from "../models";
+import { associateModels } from "../models/associate";
 
-const config: ConnectionConfiguration= {
-  server: 'DESKTOP-Q6BEF3C',
-  options: {
-    encrypt: false,
-    trustServerCertificate: true,
-    database: 'ChatApp',
-  },
-  authentication: {
-    type: 'default',
+console.log("Database configuration loaded");
+export const sequelize = new Sequelize({
+  dialect: "mssql",
+  host: "DESKTOP-Q6BEF3C",
+  database: "ChatApp",
+  username: "khoand",
+  password: "12345",
+  dialectOptions: {
     options: {
-      userName: 'khoand',
-      password: '12345',
-    },
+      encrypt: false,
+      trustServerCertificate: true,
+    }
   },
-};
-
-export const connection = new Connection(config);
-
-connection.on('connect', (err) => {
-  if (err) console.error('DB connection error:', err);
-  else console.log('✅ Connected to MSSQL');
+  logging: false
 });
 
-connection.connect();
+sequelize.addModels(models);
+associateModels();

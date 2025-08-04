@@ -1,24 +1,31 @@
-import { AllowNull, BelongsToMany, Column, DataType, Model, Table } from "sequelize-typescript";
-import { User } from "./user.model";
-import { UserConversation } from "./userconversation.model";
-import { ConversationAttribute, ConversationCreationAttribute } from "../interfaces/conversation.interface";
+import {
+  Column,
+  DataType,
+  Model,
+  Table
+} from "sequelize-typescript";
 
-@Table
-export class Conversation extends Model<ConversationAttribute, ConversationCreationAttribute>{
+@Table({ tableName: "Conversations" })  
+export class Conversation extends Model {
+  @Column({
+    type: DataType.INTEGER,
+    primaryKey: true,
+    allowNull: false,
+    unique: true,
+    autoIncrement: true,
+  })
+  id!: number;
 
-    @Column({type: DataType.INTEGER, primaryKey: true, allowNull: false, unique: true, autoIncrement: true})
-    id!: number;
+  @Column({ type: DataType.STRING, allowNull: true })
+  name?: string;
 
-    @Column({type: DataType.STRING, allowNull: true})
-    Name?: string;
+  @Column({ type: DataType.BOOLEAN, allowNull: false })
+  isGroup!: boolean;
 
-    @Column({type: DataType.BOOLEAN, allowNull: false })
-    isGroup!:boolean;
-
-    @Column({type:DataType.DATE, allowNull: false})
-    createdAt!: Date;
-
-    @BelongsToMany(()=> User, ()=> UserConversation)
-    users!: User[];
+  @Column({ type: DataType.DATE, allowNull: false })
+  createdAt!: Date;
 
 }
+
+
+

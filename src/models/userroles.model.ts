@@ -3,7 +3,7 @@ import { Role } from "./role.model";
 import { User } from "./user.model";
 
 @Table({tableName: "User_Roles"})
-export class UserRoles extends Model<UserRoles>{
+export class UserRoles extends Model{
 
     @Column({type: DataType.INTEGER, primaryKey: true, unique: true, allowNull: false, autoIncrement: false })
     id!: number
