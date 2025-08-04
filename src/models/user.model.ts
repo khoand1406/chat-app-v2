@@ -1,5 +1,10 @@
-import { BelongsToMany, Column, DataType, Model, Table } from "sequelize-typescript";
+import { BelongsToMany, Column, DataType, HasMany, Model, Table } from "sequelize-typescript";
 import { UserAttributes, UserCreationAttributes } from "../interfaces/user.interface";
+import { Conversation } from "./conversation.model";
+import { Message } from "./message.model";
+import { UserConversation } from "./userconversation.model";
+import { Role } from "./role.model";
+import { UserRoles } from "./userroles.model";
 
 
 @Table({ tableName: "Users" })
@@ -19,4 +24,15 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
     @Column({ type: DataType.STRING, allowNull: true })
     avatarUrl?: string;
 
+    
+    @BelongsToMany(() => Role, () => UserRoles)
+    roles!: Role[];
+
+    @HasMany(() => Message)
+    messages!: Message[];
+
+    @BelongsToMany(() => Conversation, () => UserConversation)
+    conversations!: Conversation[];
 }
+
+

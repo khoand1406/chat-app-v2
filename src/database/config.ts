@@ -19,4 +19,4 @@ export const sequelize = new Sequelize({
 });
 
 sequelize.addModels(models);
-associateModels();
+
