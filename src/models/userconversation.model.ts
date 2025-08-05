@@ -8,7 +8,7 @@ import {
 import { User } from './user.model';
 import { Conversation } from './conversation.model';
 
-@Table
+@Table({ tableName: 'Users_Conversations', timestamps: false })
 export class UserConversation extends Model {
   @Column({
     type: DataType.INTEGER,
@@ -19,12 +19,12 @@ export class UserConversation extends Model {
   id!: number;
 
   @ForeignKey(() => User)
-  @Column({ type: DataType.INTEGER, allowNull: false })
-  userId!: number;
+  @Column({ type: DataType.INTEGER, allowNull: true })
+  userId?: number;
 
   @ForeignKey(() => Conversation)
-  @Column({ type: DataType.INTEGER, allowNull: false })
-  conversationId!: number;
+  @Column({ type: DataType.INTEGER, allowNull: true })
+  conversationId?: number;
 
   @Column({ type: DataType.DATE, allowNull: false })
   joinAt!: Date;

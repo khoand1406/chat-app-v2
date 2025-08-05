@@ -2,12 +2,11 @@ import { BelongsToMany, Column, DataType, HasMany, Model, Table } from "sequeliz
 import { UserAttributes, UserCreationAttributes } from "../interfaces/user.interface";
 import { Conversation } from "./conversation.model";
 import { Message } from "./message.model";
-import { UserConversation } from "./userconversation.model";
 import { Role } from "./role.model";
+import { UserConversation } from "./userconversation.model";
 import { UserRoles } from "./userroles.model";
 
-
-@Table({ tableName: "Users" })
+@Table({ tableName: "Users", timestamps: false })
 export class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
     @Column({ type: DataType.INTEGER, allowNull: false, unique: true, autoIncrement: true, primaryKey: true })
     id!: number;
@@ -24,7 +23,12 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
     @Column({ type: DataType.STRING, allowNull: true })
     avatarUrl?: string;
 
-    
+    @Column({ type: DataType.DATE, allowNull: true })
+    createdAt?: Date;
+
+    @Column({ type: DataType.DATE, allowNull: true })
+    updatedAt?: Date;
+
     @BelongsToMany(() => Role, () => UserRoles)
     roles!: Role[];
 
@@ -34,5 +38,3 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
     @BelongsToMany(() => Conversation, () => UserConversation)
     conversations!: Conversation[];
 }
-
-

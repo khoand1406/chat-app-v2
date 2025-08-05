@@ -1,5 +1,4 @@
 import {
-  BelongsTo,
   BelongsToMany,
   Column,
   DataType,
@@ -7,12 +6,12 @@ import {
   Model,
   Table
 } from "sequelize-typescript";
+import { ConversationAttribute } from "../interfaces/conversation.interface";
 import { Message } from "./message.model";
 import { User } from "./user.model";
 import { UserConversation } from "./userconversation.model";
-import { ConversationAttribute } from "../interfaces/conversation.interface";
 
-@Table({ tableName: "Conversations" })  
+@Table({ tableName: "Conversation", timestamps: false })  
 export class Conversation extends Model<ConversationAttribute> implements ConversationAttribute {
   @Column({
     type: DataType.INTEGER,

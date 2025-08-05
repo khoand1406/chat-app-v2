@@ -1,6 +1,5 @@
 import { Sequelize } from "sequelize-typescript";
 import { models } from "../models";
-import { associateModels } from "../models/associate";
 
 console.log("Database configuration loaded");
 export const sequelize = new Sequelize({
@@ -15,7 +14,7 @@ export const sequelize = new Sequelize({
       trustServerCertificate: true,
     }
   },
-  logging: false
+  logging: console.log,
 });
 
 sequelize.addModels(models);

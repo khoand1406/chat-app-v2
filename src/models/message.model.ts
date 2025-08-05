@@ -1,10 +1,10 @@
 import { BelongsTo, Column, DataType, ForeignKey, Model, Table } from "sequelize-typescript";
+import { CreateMessageAttribute, MessageAttributes } from "../interfaces/message.interface";
 import { Conversation } from "./conversation.model";
 import { User } from "./user.model";
-import { CreateMessageAttribute, MessageAttributes } from "../interfaces/message.interface";
 
 
-@Table
+@Table({ tableName: "Messages" , timestamps: false })
 export class Message extends Model<MessageAttributes, CreateMessageAttribute>{
     @Column({type: DataType.INTEGER, primaryKey: true, unique: true, allowNull: false, autoIncrement: false})
     id!: number
@@ -23,6 +23,7 @@ export class Message extends Model<MessageAttributes, CreateMessageAttribute>{
     @Column({type: DataType.DATE, allowNull: false})
     sendAt!: Date
 
+    
     @BelongsTo(()=> Conversation)
     conversation!: Conversation
 
@@ -33,3 +34,4 @@ export class Message extends Model<MessageAttributes, CreateMessageAttribute>{
 
     
 }
+

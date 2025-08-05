@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { UserServices } from '../services/user.services';
+import { CreateUserRequest } from '../dtos/user/create-user.dto';
 export class UserController {
     private readonly _userService: UserServices;
     constructor(private readonly userService?: UserServices) {
@@ -27,7 +28,9 @@ export class UserController {
             if (!userData || !userData.username || !userData.email || !userData.passwordHash) {
                 return response.status(400).json({ Error: "Invalid user data" });
             }
-            const newUser = await this._userService.createUsers(userData);
+            
+            const user = new CreateUserRequest(userData);
+            const newUser = await this._userService.createUsers(user);
             return response.status(201).json(newUser);
         } catch (error) {
             return response.status(500).json({ Error: `${error}` });
