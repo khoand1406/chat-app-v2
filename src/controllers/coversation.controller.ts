@@ -51,11 +51,11 @@ export class ConversationController {
     try {
       const data = request.body;
       if (data === null) {
-        return response.status(401).json({ Error: "Data not found" });
+        return response.status(400).json({ Error: "Data not found" });
       }
       if (data.participantIds === null || data.participantIds.length === 0) {
         return response
-          .status(401)
+          .status(400)
           .json({ Error: "Participant IDs not found" });
       }
       const Conversation = new conversationCreateRequest(data);
@@ -63,7 +63,7 @@ export class ConversationController {
       return response.status(201).json(result);
     } catch (error) {
       if (error instanceof Error) {
-        return response.status(401).json({ Error: `${error.message}` });
+        return response.status(400).json({ Error: `${error.message}` });
       }
       return response.status(500).json({ Error: `${error}` });
     }

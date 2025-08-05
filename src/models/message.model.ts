@@ -6,7 +6,7 @@ import { User } from "./user.model";
 
 @Table({ tableName: "Messages" , timestamps: false })
 export class Message extends Model<MessageAttributes, CreateMessageAttribute>{
-    @Column({type: DataType.INTEGER, primaryKey: true, unique: true, allowNull: false, autoIncrement: false})
+    @Column({type: DataType.INTEGER, primaryKey: true, unique: true, allowNull: false, autoIncrement: true})
     id!: number
 
     @ForeignKey(()=> Conversation)

@@ -2,13 +2,13 @@ export class ConversationResponse{
     id!: number
     Name?: string
     isGroup!: boolean
-    createAt!: Date
+    createdAt!: Date
 
     constructor(conversation: any){
         this.id= conversation.id,
         this.Name= conversation.name,
         this.isGroup= conversation.isGroup,
-        this.createAt= conversation.createAt
+        this.createdAt= conversation.createdAt
     }
 }
 
@@ -28,11 +28,11 @@ export class conversationCreateRequest{
     name= ''
     participantIds!:number[]
     isGroup= false
-    createAt!:Date
+    createdAt!:Date
 
     constructor(model:any){
         this.participantIds= model.participantIds;
-        this.createAt= model.createAt;
+        this.createdAt= model.createdAt;
     }
     
 }

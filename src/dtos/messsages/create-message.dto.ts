@@ -6,6 +6,15 @@ export class CreateMessageRequest{
     senderId!: number
     sendAt!:Date
     content!: string
+
+    constructor(data: any){
+        this.conversationId= data.conversationId
+        this.senderId= data.senderId
+        this.sendAt= data.sendAt
+        this.content= data.content
+    }
+
+    
 }
 
 

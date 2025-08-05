@@ -18,13 +18,13 @@ export class UserConversation extends Model {
   })
   id!: number;
 
-  @ForeignKey(() => User)
-  @Column({ type: DataType.INTEGER, allowNull: true })
-  userId?: number;
+@ForeignKey(() => Conversation)
+@Column({ type: DataType.INTEGER, allowNull: false }) // ✅ KHÔNG nullable
+conversationId!: number;
 
-  @ForeignKey(() => Conversation)
-  @Column({ type: DataType.INTEGER, allowNull: true })
-  conversationId?: number;
+@ForeignKey(() => User)
+@Column({ type: DataType.INTEGER, allowNull: false }) // ✅ KHÔNG nullable
+userId!: number;
 
   @Column({ type: DataType.DATE, allowNull: false })
   joinAt!: Date;

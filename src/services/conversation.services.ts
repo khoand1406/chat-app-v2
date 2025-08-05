@@ -1,12 +1,16 @@
+import { sequelize } from "../database/config";
 import { conversationCreateRequest, ConversationResponse, groupCreateRequest } from "../dtos/conversation/create-conversation.dto";
+import { ConversationCreationAttribute } from "../interfaces/conversation.interface";
 import { Conversation } from "../models/conversation.model";
 import { User } from "../models/user.model";
+import { UserConversation } from "../models/userconversation.model";
+import { formatDateToSQL } from "../utils/dateFormatter";
 
 export class ConversationServices{
     async createGroupConversation(model: groupCreateRequest): Promise<ConversationResponse>{
         
         try {
-            const conversation= await Conversation.create({name: model.name, isGroup: model.isGroup, createAt: model.createAt});
+            const conversation= await Conversation.create({name: model.name, isGroup: model.isGroup, createdAt: model.createAt});
             if(model.participantIds===null || model.participantIds.length===0){
                 throw new Error("Invalid participants");
             }
@@ -75,20 +79,54 @@ async getUsersConversation(conversationId: number, userId: number):Promise<Conve
   }
 }
 
-async createUserConversation(model: conversationCreateRequest): Promise<ConversationResponse>{
+async createUserConversation(model: conversationCreateRequest): Promise<ConversationResponse> {
+  const transaction = await sequelize.transaction();
   try {
-    const conversation= Conversation.create({name: model.name, isGroup: false, createAt: model.createAt});
-    if(model.participantIds.length===0 || model.participantIds===null){
-      throw Error("Invalid participants");
+    if (!model.participantIds || model.participantIds.length === 0) {
+      throw new Error("Invalid participants");
     }
-    if(model.participantIds.length> 2){
-      throw Error("Invalid join participants")
+
+    const payload: ConversationCreationAttribute = {
+      name: model.name || "",
+      isGroup: model.isGroup,
+      createdAt: new Date(),
+    };
+
+    const conversation = await Conversation.create(payload, { transaction });
+
+    // Ensure conversation is created and has a valid id
+    if (!conversation || !conversation.id) {
+      throw new Error("Conversation creation failed");
     }
-    const users= await User.findAll({where: {id: model.participantIds}});
-    (await conversation).$add("users", users);
+
+    const users = await User.findAll({
+      where: { id: model.participantIds },
+      transaction,
+    });
+
+    if (users.length !== model.participantIds.length) {
+      throw new Error("One or more userIds are invalid");
+    }
+
+    await UserConversation.bulkCreate(
+      users.map((user) => ({
+        conversationId: conversation.id,
+        userId: user.id,
+        joinAt: new Date(),
+      })),
+      { transaction }
+    );
+
+    await transaction.commit();
+
     return new ConversationResponse(conversation);
-  } catch (error) {
-    throw new Error(`Error: ${error}`)
+  } catch (error: any) {
+    await transaction.rollback();
+    console.error("💥 Sequelize error:", error.message);
+    if (error.original) {
+      console.error("Original SQL error:", error.original.message);
+    }
+    throw new Error(`❌ Sequelize Error: ${error.message}`);
   }
 }
 

@@ -6,13 +6,13 @@ import {
   Model,
   Table
 } from "sequelize-typescript";
-import { ConversationAttribute } from "../interfaces/conversation.interface";
+import { ConversationAttribute, ConversationCreationAttribute } from "../interfaces/conversation.interface";
 import { Message } from "./message.model";
 import { User } from "./user.model";
 import { UserConversation } from "./userconversation.model";
 
 @Table({ tableName: "Conversation", timestamps: false })  
-export class Conversation extends Model<ConversationAttribute> implements ConversationAttribute {
+export class Conversation extends Model<ConversationAttribute, ConversationCreationAttribute> implements ConversationAttribute {
   @Column({
     type: DataType.INTEGER,
     primaryKey: true,

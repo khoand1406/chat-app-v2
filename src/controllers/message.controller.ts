@@ -10,11 +10,14 @@ export class MessageController{
 
     sendMessage= async (request:Request, response:Response)=> {
         try {
-            const data: CreateMessageRequest = request.body;
-            const result= await this._messageService.sendMessage(data)
+            const data = request.body;
+            data.sendAt = new Date();
+            const messageDto = new CreateMessageRequest(data);
+            const result= await this._messageService.sendMessage(messageDto)
             return response.status(201).json(result)
-        } catch (error) {
-            return response.status(401).json({status: 'failed', error: error});       
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            return response.status(400).json({status: 'failed', error: errorMessage});       
         }
     }
 
