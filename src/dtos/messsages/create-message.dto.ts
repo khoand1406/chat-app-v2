@@ -7,9 +7,9 @@ export class CreateMessageRequest{
     sendAt!:Date
     content!: string
 
-    constructor(data: any){
+    constructor(data: any, senderId: number = 0) {
         this.conversationId= data.conversationId
-        this.senderId= data.senderId
+        this.senderId= senderId
         this.sendAt= data.sendAt
         this.content= data.content
     }

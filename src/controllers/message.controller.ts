@@ -12,16 +12,38 @@ export class MessageController{
     }
 
     sendMessage= async (request:Request, response:Response)=> {
-       
         try {
+            const token = request.headers.authorization?.split(' ')[1];
+            if (!token) {
+                return response.status(401).json({status: 'failed', error: 'Unauthorized'});
+            }
+            const tokenFind = await Token.findOne({where: {token: token}});
+            if (!tokenFind) {
+                return response.status(401).json({status: 'failed', error: 'Invalid token'});
+            }
+
+            const userId = tokenFind.userId;
+            if (!userId || isNaN(userId)) {
+                return response.status(400).json({status: 'failed', error: 'Invalid user ID'});
+            }
+            
             const data = request.body;
             if (!data || Object.keys(data).length === 0) {
                 return response.status(400).json({status: 'failed', error: 'Data not found'});
             }
-            if (!data.content || !data.conversationId || !data.senderId) {
+            if (!data.content || !data.conversationId) {
                 return response.status(400).json({status: 'failed', error: 'Invalid message data'});
             }
-            const messageDto = new CreateMessageRequest(data);
+            const userConversation = await UserConversation.findOne({
+                where: {
+                    userId: userId,
+                    conversationId: data.conversationId
+                }
+            });
+            if (!userConversation) {
+                return response.status(403).json({status: 'failed', error: 'User is not a participant in this conversation'});
+            }   
+            const messageDto = new CreateMessageRequest(data, userId);
             const result= await this._messageService.sendMessage(messageDto)
             return response.status(201).json(result)
         } catch (error: unknown) {

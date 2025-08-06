@@ -17,10 +17,13 @@ export class groupCreateRequest{
     participantIds!: number[]
     isGroup= true
     createAt!: Date
-    constructor(model: any){
+    constructor(model: any, currentUserId: number){
         this.name= model.name;
         this.participantIds= model.participantIds;
         this.createAt= model.createAt;
+        if(currentUserId > 0){
+            this.participantIds.push(currentUserId);
+        }
     }
 }
 
@@ -30,9 +33,12 @@ export class conversationCreateRequest{
     isGroup= false
     createdAt!:Date
 
-    constructor(model:any){
+    constructor(model:any, currentUserId: number = 0){
         this.participantIds= model.participantIds;
         this.createdAt= model.createdAt;
+        if(currentUserId > 0){
+            this.participantIds.push(currentUserId);
+        }
     }
     
 }
