@@ -57,6 +57,8 @@ export class UserServices{
     async authenticateUser(email: string, passwordHash: string): Promise<UserResponse> {
         const user = await User.findOne({ where: { email }, include: [Role] });
         if (!user) throw Error("User not found");
+        console.log("User found:", user);
+        console.log(user.passwordHash, passwordHash);
         const isMatch = await bcrypt.compare(passwordHash, user.passwordHash);
         if (!isMatch) throw Error("Invalid credentials");
         return new UserResponse(user);

@@ -31,19 +31,19 @@ export class ConversationController {
   createGroupConversation = async (request: Request, response: Response) => {
     try {
       const data = request.body;
-      if (data === null) {
-        return response.status(401).json({ Error: "Data not found" });
+      if (data === null || data.length === 0) {
+        return response.status(400).json({ Error: "Data not found" });
       }
       if (data.participantIds === null || data.participantIds.length === 0) {
         return response
-          .status(401)
+          .status(400)
           .json({ Error: "Participant IDs not found" });
       }
       const Conversation = new groupCreateRequest(data);
       const result = await this._service.createGroupConversation(Conversation);
       return response.status(201).json(result);
     } catch (error) {
-      return response.status(401).json({ Error: `${error}` });
+      return response.status(400).json({ Error: `${error}` });
     }
   };
 

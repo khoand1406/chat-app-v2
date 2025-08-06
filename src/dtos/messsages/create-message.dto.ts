@@ -23,14 +23,17 @@ export class CreateMessageResponse{
     conversationId!: number
     senderId!: number
     sendAt!:Date
-    content!: string 
+    content!: string
+    isRead!: boolean
+    readAt?: Date
 
-    constructor(message: Message){
+    constructor(message: Message, isRead: boolean= false){
         this.id= message.id;
         this.conversationId= message.conversationId;
         this.senderId= message.senderId;
         this.content= message.content;
         this.sendAt= message.sendAt;
-
+        this.isRead= isRead;
+        this.readAt= isRead ? new Date() : undefined;   
     }
 }

@@ -1,4 +1,4 @@
-import { IsString, IsEmail, MinLength, isURL, IsOptional, IsUrl } from 'class-validator';
+import { IsString, IsEmail, MinLength, IsOptional, IsUrl } from 'class-validator';
 import { RoleEnum } from "../../constants/roleEnum";
 
 export class CreateUserRequest {
@@ -13,15 +13,8 @@ export class CreateUserRequest {
     passwordHash!: string;
 
     @IsOptional()
-@IsUrl({}, { message: "Avatar must be a valid URL" })
-avatarUrl?: string;
+    @IsUrl({}, { message: "Avatar must be a valid URL" })
+    avatarUrl?: string;
 
     role = RoleEnum.User;
-
-    constructor(data: any) {
-        this.username = data.username;
-        this.email = data.email;
-        this.passwordHash = data.passwordHash;
-        this.avatarUrl = data.avatarUrl;
-    }
 }

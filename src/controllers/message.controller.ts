@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
 import { CreateMessageRequest } from "../dtos/messsages/create-message.dto";
 import { MessageService } from "../services/message.services";
+import { sequelize } from '../database/config';
+import { Token } from '../models/token';
+import { UserConversation } from '../models/userconversation.model';
 export class MessageController{
 
     private  _messageService: MessageService;
@@ -9,9 +12,15 @@ export class MessageController{
     }
 
     sendMessage= async (request:Request, response:Response)=> {
+       
         try {
             const data = request.body;
-            data.sendAt = new Date();
+            if (!data || Object.keys(data).length === 0) {
+                return response.status(400).json({status: 'failed', error: 'Data not found'});
+            }
+            if (!data.content || !data.conversationId || !data.senderId) {
+                return response.status(400).json({status: 'failed', error: 'Invalid message data'});
+            }
             const messageDto = new CreateMessageRequest(data);
             const result= await this._messageService.sendMessage(messageDto)
             return response.status(201).json(result)
@@ -23,11 +32,35 @@ export class MessageController{
 
     getMessages= async (request: Request, response: Response)=> {
         try {
-            const conversationId= request.body;
-            const result= await this._messageService.getMessageByConversation(conversationId)
+            const token= request.headers.authorization?.split(' ')[1];
+            if (!token) {
+                return response.status(401).json({status: 'failed', error: 'Unauthorized'});
+            }
+            const conversationId= request.params.id;
+            const tokenFind= await Token.findAll({where: {token: token}});
+            if (!tokenFind || tokenFind.length === 0) {
+                return response.status(401).json({status: 'failed', error: 'Invalid token'});
+            }
+            const currentUserId= tokenFind[0].userId;
+            if (!conversationId || isNaN(parseInt(conversationId))) {
+                return response.status(400).json({status: 'failed', error: 'Invalid conversation ID'});
+            }
+            if (!currentUserId || isNaN(currentUserId)) {
+                return response.status(400).json({status: 'failed', error: 'Invalid user ID'});
+            }
+            const UserInConversation = await UserConversation.findOne({
+                where: {
+                    userId: currentUserId,
+                    conversationId: parseInt(conversationId)
+                }
+            });
+            if (!UserInConversation) {
+                return response.status(403).json({status: 'failed', error: 'User is not a participant in this conversation'});
+            }
+            const result= await this._messageService.getMessageByConversation(parseInt(conversationId), currentUserId);
             return response.status(200).json(result)
         } catch (error) {
-            return response.status(401).json({status: 'failed', error: error})
+            return response.status(400).json({status: 'failed', error: error})
         }
     }
 }

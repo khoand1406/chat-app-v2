@@ -5,6 +5,7 @@ import { Message } from "./message.model";
 import { Role } from "./role.model";
 import { UserConversation } from "./userconversation.model";
 import { UserRoles } from "./userroles.model";
+import { UserMessages } from "./usermessages";
 
 @Table({ tableName: "Users", timestamps: false })
 export class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
@@ -37,4 +38,10 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
 
     @BelongsToMany(() => Conversation, () => UserConversation)
     conversations!: Conversation[];
+
+    @HasMany(() => UserMessages)
+    userMessages!: UserMessages[];
+
+    @HasMany(() => UserMessages)
+    readMessages!: UserMessages[];
 }
