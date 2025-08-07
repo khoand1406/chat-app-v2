@@ -33,12 +33,16 @@ export class conversationCreateRequest{
     isGroup= false
     createdAt!:Date
 
-    constructor(model:any, currentUserId: number = 0){
+    constructor(model:any, currentUserId: number = 0, userReceiverName: string = ''){
         this.participantIds= model.participantIds;
         this.createdAt= model.createdAt;
         if(currentUserId > 0){
             this.participantIds.push(currentUserId);
         }
+        if(userReceiverName){
+            this.name= userReceiverName;
+        }
+
     }
     
 }

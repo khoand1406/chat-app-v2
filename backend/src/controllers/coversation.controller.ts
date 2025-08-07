@@ -5,6 +5,7 @@ import {
 } from "../dtos/conversation/create-conversation.dto";
 import { ConversationServices } from "../services/conversation.services";
 import { Token } from "../models/token";
+import { User } from "../models/user.model";
 
 export class ConversationController {
     private _service: ConversationServices;
@@ -106,7 +107,13 @@ export class ConversationController {
       if (!userId || isNaN(userId)) {
         return response.status(400).json({ Error: "Invalid user ID" });
       }
-      const Conversation = new conversationCreateRequest(data, userId );
+      const userReceiver= await User.findOne({where: {id: data.participantIds[0]}});
+      if (!userReceiver) {
+        return response.status(400).json({ Error: "Receiver not found" });
+      }
+
+
+      const Conversation = new conversationCreateRequest(data, userId, userReceiver.userName);
       if (!Conversation.participantIds.includes(userId)) {
         Conversation.participantIds.push(userId);
       }
