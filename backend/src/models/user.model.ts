@@ -40,8 +40,8 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
     conversations!: Conversation[];
 
     @HasMany(() => UserMessages)
-    userMessages!: UserMessages[];
-
-    @HasMany(() => UserMessages)
     readMessages!: UserMessages[];
+
+    @HasMany(() => UserConversation)
+  userconversations!: UserConversation[];
 }

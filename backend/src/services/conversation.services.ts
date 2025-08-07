@@ -1,27 +1,49 @@
 import { sequelize } from "../database/config";
 import {
-  conversationCreateRequest,
   ConversationResponse,
   groupCreateRequest,
+  userConversationCreateRequest
 } from "../dtos/conversation/create-conversation.dto";
 import { ConversationCreationAttribute } from "../interfaces/conversation.interface";
 import { Conversation } from "../models/conversation.model";
 import { User } from "../models/user.model";
 import { UserConversation } from "../models/userconversation.model";
-import { formatDateToSQL } from "../utils/dateFormatter";
 
 export class ConversationServices {
   async createGroupConversation(
-    model: groupCreateRequest
+    model: groupCreateRequest,
+    currentUserId:number
   ): Promise<ConversationResponse> {
     const transaction = await sequelize.transaction();
     try {
       if (!model.participantIds || model.participantIds.length === 0) {
         throw new Error("Invalid participants");
       }
-      if (model.participantIds.length < 3) {
+      const participantsId = [...new Set([...model.participantIds, currentUserId])];
+      
+      if (participantsId.length < 3) {
         throw new Error("Group conversation must have at least 3 participants");
       }
+      const existingConversations = await Conversation.findAll({
+  where: { isGroup: true },
+  include: [
+    {
+      model: User,
+      where: { id: participantsId },
+      through: { attributes: [] }
+    }
+  ],
+  transaction,
+});
+
+for (const conv of existingConversations) {
+  const users = await conv.$get("users", { transaction });
+  const userIds = users.map(u => u.id).sort();
+  if (JSON.stringify(userIds) === JSON.stringify(participantsId.sort())) {
+    await transaction.rollback();
+    return new ConversationResponse(conv); // đã tồn tại -> trả về
+  }
+}
       const payload: ConversationCreationAttribute = {
         name: model.name || "",
         isGroup: model.isGroup,
@@ -35,7 +57,7 @@ export class ConversationServices {
       }
 
       const userIds = await User.findAll({
-        where: { id: model.participantIds },
+        where: { id: participantsId },
         transaction,
       });
       if (userIds.length !== model.participantIds.length) {
@@ -118,17 +140,42 @@ export class ConversationServices {
     }
   }
 
-  async createUserConversation(
-    model: conversationCreateRequest
+  async gerorcreateUserConversation(
+    model: userConversationCreateRequest,
+    currentUserId: number
   ): Promise<ConversationResponse> {
     const transaction = await sequelize.transaction();
     try {
-      if (!model.participantIds || model.participantIds.length === 0) {
+      const { participantId, isGroup } = model;
+      if (!model.participantId) {
         throw new Error("Invalid participants");
       }
+      const userConversations = await UserConversation.findAll({
+    where: { userId: currentUserId },
+    include: [Conversation]
+  });
+
+    const targetUser= await User.findByPk(participantId);
+    if(!targetUser){
+      throw new Error("Invalid target");
+    }
+    for (const uc of userConversations) {
+    
+    const otherParticipant = await UserConversation.findOne({
+      where: {
+        conversationId: uc.conversationId,
+        userId: participantId
+      }
+    });
+
+    if (otherParticipant) {
+      // Found existing 1-1 conversation
+      return new ConversationResponse(uc.conversation, targetUser.userName);
+    }
+  }
 
       const payload: ConversationCreationAttribute = {
-        name: model.name || "",
+        name:  "",
         isGroup: model.isGroup,
         createdAt: new Date(),
       };
@@ -139,27 +186,25 @@ export class ConversationServices {
         throw new Error("Conversation creation failed");
       }
 
-      const users = await User.findAll({
-        where: { id: model.participantIds },
-        transaction,
-      });
-
-      if (users.length !== model.participantIds.length) {
-        throw new Error("One or more userIds are invalid");
-      }
-
-      await UserConversation.bulkCreate(
-        users.map((user) => ({
+       await UserConversation.bulkCreate(
+      [
+        {
+          userId: currentUserId,
           conversationId: conversation.id,
-          userId: user.id,
           joinAt: new Date(),
-        })),
-        { transaction }
-      );
+        },
+        {
+          userId: participantId,
+          conversationId: conversation.id,
+          joinAt: new Date(),
+        },
+      ],
+      { transaction }
+    );
 
       await transaction.commit();
 
-      return new ConversationResponse(conversation);
+      return new ConversationResponse(conversation, targetUser.userName);
     } catch (error: any) {
       await transaction.rollback();
       console.error("Error:", error.message);

@@ -3,12 +3,14 @@ export class ConversationResponse{
     Name?: string
     isGroup!: boolean
     createdAt!: Date
+    displayname?: string
 
-    constructor(conversation: any){
+    constructor(conversation: any, displayname: string = ''){
         this.id= conversation.id,
         this.Name= conversation.name,
         this.isGroup= conversation.isGroup,
         this.createdAt= conversation.createdAt
+        this.displayname= displayname;
     }
 }
 
@@ -17,13 +19,11 @@ export class groupCreateRequest{
     participantIds!: number[]
     isGroup= true
     createAt!: Date
-    constructor(model: any, currentUserId: number){
+    constructor(model: any){
         this.name= model.name;
         this.participantIds= model.participantIds;
         this.createAt= model.createAt;
-        if(currentUserId > 0){
-            this.participantIds.push(currentUserId);
-        }
+        
     }
 }
 
@@ -45,4 +45,16 @@ export class conversationCreateRequest{
 
     }
     
+}
+
+export class userConversationCreateRequest{
+    participantId!: number
+    isGroup= false
+    createdAt!: Date
+    constructor(model:any){
+        this.participantId= model.participantId
+        this.createdAt= new Date();
+
+    }
+
 }

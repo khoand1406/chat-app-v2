@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import {
     conversationCreateRequest,
     groupCreateRequest,
+    userConversationCreateRequest,
 } from "../dtos/conversation/create-conversation.dto";
 import { ConversationServices } from "../services/conversation.services";
 import { Token } from "../models/token";
@@ -71,8 +72,8 @@ export class ConversationController {
           .status(400)
           .json({ Error: "Participant IDs not found" });
       }
-      const Conversation = new groupCreateRequest(data, userId);
-      const result = await this._service.createGroupConversation(Conversation);
+      const Conversation = new groupCreateRequest(data);
+      const result = await this._service.createGroupConversation(Conversation, userId);
       return response.status(201).json(result);
     } catch (error) {
       return response.status(400).json({ Error: `${error}` });
@@ -97,7 +98,7 @@ export class ConversationController {
       if (data === null) {
         return response.status(400).json({ Error: "Data not found" });
       }
-      if (data.participantIds === null || data.participantIds.length === 0) {
+      if (data.participantId === null) {
         return response
           .status(400)
           .json({ Error: "Participant IDs not found" });
@@ -107,20 +108,12 @@ export class ConversationController {
       if (!userId || isNaN(userId)) {
         return response.status(400).json({ Error: "Invalid user ID" });
       }
-      const userReceiver= await User.findOne({where: {id: data.participantIds[0]}});
+      const userReceiver= await User.findOne({where: {id: data.participantId}});
       if (!userReceiver) {
         return response.status(400).json({ Error: "Receiver not found" });
       }
-
-
-      const Conversation = new conversationCreateRequest(data, userId, userReceiver.userName);
-      if (!Conversation.participantIds.includes(userId)) {
-        Conversation.participantIds.push(userId);
-      }
-      if(Conversation.participantIds.length > 2) {
-        return response.status(400).json({ Error: "User conversation can only have 2 participants" });
-      }
-      const result = await this._service.createUserConversation(Conversation);
+      const Conversation= new userConversationCreateRequest(data);
+      const result = await this._service.gerorcreateUserConversation(Conversation, userId);
       return response.status(201).json(result);
     } catch (error) {
       if (error instanceof Error) {

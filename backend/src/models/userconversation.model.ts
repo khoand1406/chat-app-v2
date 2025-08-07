@@ -1,4 +1,5 @@
 import {
+  BelongsTo,
   Column,
   DataType,
   ForeignKey,
@@ -28,4 +29,10 @@ userId!: number;
 
   @Column({ type: DataType.DATE, allowNull: false, defaultValue: DataType.NOW })
   joinAt!: Date;
+
+  @BelongsTo(() => Conversation)
+  conversation!: Conversation;
+
+  @BelongsTo(() => User)
+  user!: User;
 }
