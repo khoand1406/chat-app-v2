@@ -4,6 +4,9 @@ export interface IConversationResponse {
   isGroup: boolean;
   createdAt: Date;
   displayname:string;
+  avatarUrl?: string;
+  lastMessage?: string;
+  timestamp?: Date
 };
 
 export interface IUserConversationCreateRequest{

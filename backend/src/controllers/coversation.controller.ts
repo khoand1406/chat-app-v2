@@ -40,7 +40,7 @@ export class ConversationController {
       const result = await this._service.getUserConversations(userid);
       return response.status(200).json(result);
     } catch (error) {
-      return response.status(401).json({ Error: `${error}` });
+      return response.status(400).json({ Error: `${error}` });
     }
   };
 

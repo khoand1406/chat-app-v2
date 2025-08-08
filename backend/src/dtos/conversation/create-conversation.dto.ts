@@ -5,14 +5,18 @@ export class ConversationResponse{
     createdAt!: Date
     displayname?: string
     avatarUrl?: string
+    lastMessage?:string
+    timestamp?: string
 
-    constructor(conversation: any, displayName: string = '', avatarUrl: string = ''){
+    constructor(conversation: any, displayName: string = '', avatarUrl: string = '', lastmessage: string= '', timesta: string= '' ){
         this.id= conversation.id,
         this.Name= conversation.name,
         this.isGroup= conversation.isGroup,
         this.createdAt= conversation.createdAt
         this.displayname= displayName;
         this.avatarUrl= conversation.avatarUrl || avatarUrl || '';
+        this.lastMessage= lastmessage|| ''
+        this.timestamp= timesta
     }
 }
 

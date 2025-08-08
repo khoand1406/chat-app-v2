@@ -6,6 +6,7 @@ import {
 } from "../dtos/conversation/create-conversation.dto";
 import { ConversationCreationAttribute } from "../interfaces/conversation.interface";
 import { Conversation } from "../models/conversation.model";
+import { Message } from "../models/message.model";
 import { User } from "../models/user.model";
 import { UserConversation } from "../models/userconversation.model";
 
@@ -111,6 +112,13 @@ export class ConversationServices {
               attributes: ["id", "userName", "avatarUrl"],
               through: { attributes: [] },
             },
+            {
+            model: Message,
+            attributes: ["id", "content", "sendAt"],
+            separate: true,
+            order: [["sendAt", "DESC"]],
+            limit: 1,
+          },
           ],
         },
       ],
@@ -122,7 +130,6 @@ export class ConversationServices {
       let displayName = conversation.name || "";
       let avatarUrl= conversation.avatarUrl || ""
       if (!conversation.isGroup) {
-        // tìm người còn lại
         const otherUser = conversation.users?.find((u) => u.id !== userId);
         console.log("Otherrrrrrrrrrr: ", otherUser?.userName);
         if (otherUser) {
@@ -130,7 +137,11 @@ export class ConversationServices {
           avatarUrl= otherUser.avatarUrl || "";
         }
       }
-      return new ConversationResponse(conversation.get(), displayName, avatarUrl);
+      const lastMessage = conversation.messages?.[0] || null;
+    const lastMessageContent = lastMessage ? lastMessage.content : "";
+    const timestamp = lastMessage?.sendAt ? lastMessage.sendAt.toISOString() : '';
+      
+      return new ConversationResponse(conversation.get(), displayName, avatarUrl, lastMessageContent, timestamp);
     });
   }
 
