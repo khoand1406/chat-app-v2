@@ -3,6 +3,7 @@ export interface IConversationResponse {
   name: string;
   isGroup: boolean;
   createdAt: Date;
+  displayname:string;
 };
 
 export interface IUserConversationCreateRequest{

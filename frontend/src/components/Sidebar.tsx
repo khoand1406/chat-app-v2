@@ -35,7 +35,7 @@ const Sidebar: React.FC<SidebarProps> = ({ conversations, selectedId, onSelect, 
             )}
           >
             <div className="flex justify-between">
-              <span>{conv.name}</span>
+              <span>{conv.displayname}</span>
               {/* <span className="text-sm text-gray-500">{conv.timestamp}</span> */}
             </div>
             {/* <div className="text-sm text-gray-600 truncate">{conv.lastMessage}</div> */}

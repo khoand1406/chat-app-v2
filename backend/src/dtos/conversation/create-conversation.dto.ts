@@ -4,13 +4,15 @@ export class ConversationResponse{
     isGroup!: boolean
     createdAt!: Date
     displayname?: string
+    avatarUrl?: string
 
-    constructor(conversation: any, displayname: string = ''){
+    constructor(conversation: any, displayName: string = '', avatarUrl: string = ''){
         this.id= conversation.id,
         this.Name= conversation.name,
         this.isGroup= conversation.isGroup,
         this.createdAt= conversation.createdAt
-        this.displayname= displayname;
+        this.displayname= displayName;
+        this.avatarUrl= conversation.avatarUrl || avatarUrl || '';
     }
 }
 
@@ -19,10 +21,12 @@ export class groupCreateRequest{
     participantIds!: number[]
     isGroup= true
     createAt!: Date
-    constructor(model: any){
+    avatarUrl?: string
+    constructor(model: any, avatarUrl: string= ''){
         this.name= model.name;
         this.participantIds= model.participantIds;
         this.createAt= model.createAt;
+        this.avatarUrl= avatarUrl;
         
     }
 }

@@ -7,6 +7,7 @@ import {
 import { ConversationServices } from "../services/conversation.services";
 import { Token } from "../models/token";
 import { User } from "../models/user.model";
+import { uploadToCloudinary } from "../services/upload.services";
 
 export class ConversationController {
     private _service: ConversationServices;
@@ -72,7 +73,12 @@ export class ConversationController {
           .status(400)
           .json({ Error: "Participant IDs not found" });
       }
-      const Conversation = new groupCreateRequest(data);
+
+      let avatarUrl= "";
+      if(request.file){
+        avatarUrl= await uploadToCloudinary(request.file.buffer, "groups-avatar");
+      }
+      const Conversation = new groupCreateRequest(data, avatarUrl);
       const result = await this._service.createGroupConversation(Conversation, userId);
       return response.status(201).json(result);
     } catch (error) {

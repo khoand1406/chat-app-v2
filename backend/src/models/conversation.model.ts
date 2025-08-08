@@ -31,6 +31,9 @@ export class Conversation extends Model<ConversationAttribute, ConversationCreat
   @Column({ type: DataType.DATE, allowNull: false })
   createdAt!: Date;
 
+  @Column({type: DataType.STRING, allowNull: true})
+  avatarUrl?: string
+
   @HasMany(() => Message)
   messages!: Message[];
 
