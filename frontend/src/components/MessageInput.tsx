@@ -1,4 +1,9 @@
-const MessageInput = () => {
+import type React from "react";
+import type { MessageInputProps } from "../models/props/ChatWindowProps";
+
+
+
+const MessageInput: React.FC<MessageInputProps> = () => {
   return (
     <div className="flex p-4 bg-white">
       <input

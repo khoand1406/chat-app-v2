@@ -55,6 +55,7 @@ const LoginPage = () => {
       if (response.token) {
         localStorage.setItem("accessToken", response.token);
         localStorage.setItem("fullName", response.user.userName);
+        localStorage.setItem("userId", response.user.id.toString());
         setShowLoadingModal(true); 
         setTimeout(() => {
           setShowLoadingModal(false);

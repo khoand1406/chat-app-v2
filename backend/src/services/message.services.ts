@@ -56,27 +56,42 @@ export class MessageService{
         }
     }
 
-    async getMessageByConversation(conversationId: number, currentUserId: number): Promise<CreateMessageResponse[]>{
-        const message= await Message.findAll(
-            {
-                where: 
-                {
-                    conversationId: conversationId
-                }, 
-                order: [['sendAt','ASC']]
-            , include:[{model:UserMessages, 
-                where: {
-                    userId: currentUserId
-                }, 
-                required: false,
-                attributes: ['isRead', 'readAt']
-            }
-        ]
-    });
+    async getMessageByConversation(
+  conversationId: number,
+  currentUserId: number
+): Promise<CreateMessageResponse[]> {
+  const messages = await Message.findAll({
+    where: {
+      conversationId: conversationId
+    },
+    order: [['sendAt', 'ASC']],
+    include: [
+      // Lấy thông tin người gửi
+      {
+        model: User, 
+        attributes: ['id', 'userName', 'avatarUrl']
+      },
+      // Lấy trạng thái đọc tin của currentUser
+      {
+        model: UserMessages,
+        where: {
+          userId: currentUserId
+        },
+        required: false,
+        attributes: ['isRead', 'readAt']
+      }
+    ]
+  });
 
-        return message.map(index=> {
-            const isRead= index.seenBy && index.seenBy.length>0 ? index.seenBy[0].isRead : false;
-            return new CreateMessageResponse(index, isRead)
-        });
-    }
+   return messages.map(msg => ({
+    id: msg.id,
+    conversationId: msg.conversationId,
+    content: msg.content,
+    sendAt: msg.sendAt,
+    senderId: msg.senderId,
+    sender: msg.user,
+    isRead: msg.seenBy?.[0]?.isRead ?? false,
+    readAt: msg.seenBy?.[0]?.readAt ?? undefined
+  }));
+}
 }
