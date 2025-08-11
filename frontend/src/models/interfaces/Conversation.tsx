@@ -10,14 +10,15 @@ export interface IConversationResponse {
 };
 
 export interface IUserConversationCreateRequest{
-  participantsId: number[],
+  participantId: number,
   createdAt:Date
 }
 
 export interface IGroupConversationCreateRequest{
   name: string
-  participantsId: number[]
+  participantIds: number[]
   isGroup:boolean
   createdAt: Date
+  avatarUrl?: string
 
 }

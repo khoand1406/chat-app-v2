@@ -1,6 +1,6 @@
 export interface UserResponse{
     id: number
-    userName:number
+    userName:string
     email: string
     roles: Role[]
     avatarUrl: string

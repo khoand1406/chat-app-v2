@@ -3,6 +3,9 @@ import React, { useState } from "react";
 import type { SidebarProps } from "../models/props/SidebarProps";
 import { Plus, Search } from "lucide-react";
 import CreateGroupModal from "./ConversationForm";
+import { createGroupConversations, createUserConversation } from "../services/conversationServices";
+import { toast } from "react-toastify";
+import type { IUserConversationCreateRequest } from "../models/interfaces/Conversation";
 
 const Sidebar: React.FC<SidebarProps> = ({
   conversations,
@@ -60,8 +63,41 @@ const Sidebar: React.FC<SidebarProps> = ({
     </ul>
   );
 
-  function handleCreateGroup(formData: FormData): void {
-    throw new Error("Function not implemented.");
+  async function handleCreateGroup(formData: FormData): Promise<void> {
+    try {
+       if (!formData) {
+      toast("Invalid field", { position: "top-right", hideProgressBar: true });
+      return;
+    }
+
+    if (formData.getAll("participantIds").length > 1) {
+
+      // Group
+      const response = await createGroupConversations(formData);
+      if (!response) {
+        toast("Invalid request! Try Again");
+        return;
+      }
+      setCreateOpen(false)
+      onSelect(response.id);
+    } else {
+      // 1-1
+      const payload: IUserConversationCreateRequest = {
+        participantId: parseInt(formData.get("participantId") as string),
+        createdAt: new Date()
+      };
+      const response = await createUserConversation(payload);
+      if (!response) {
+        console.log("Invalid request");
+        return;
+      }
+      setCreateOpen(false);
+    
+      onSelect(response.id);
+    }
+  } catch (error) {
+    console.log(error);
+  }
   }
 
   return (

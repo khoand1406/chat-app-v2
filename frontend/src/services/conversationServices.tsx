@@ -1,5 +1,5 @@
-import { BaseUrl, CONVERSATIONS_PATH } from "../constants/ApiContants";
-import type { IConversationResponse, IGroupConversationCreateRequest, IUserConversationCreateRequest } from "../models/interfaces/Conversation";
+import { BaseUrl, CONVERSATIONS_PATH, CREATEGROUP, CREATEUSERCONV } from "../constants/ApiContants";
+import type { IConversationResponse, IUserConversationCreateRequest } from "../models/interfaces/Conversation";
 import ApiHelper from "../utils/ApiHelper";
 
 
@@ -34,16 +34,35 @@ import ApiHelper from "../utils/ApiHelper";
         }
     }
 
-    export const createGroupConversations= async (request:IGroupConversationCreateRequest):Promise<IConversationResponse>=>{
+   export const createGroupConversations = async (
+  formData: FormData
+): Promise<IConversationResponse> => {
+  try {
+    const apiHelper = new ApiHelper();
+    // Gửi nguyên formData
+    const response = await apiHelper.postFormData(CREATEGROUP, formData);
+
+    if (!response || !response.data) {
+      throw new Error("Invalid response format");
+    }
+
+    return response.data as IConversationResponse;
+  } catch (error) {
+    console.log("Error creating conversations", error);
+    throw error;
+  }
+};
+
+    export const createUserConversation= async(request: IUserConversationCreateRequest): Promise<IConversationResponse>=>{
         try {
             const apiHelper= new ApiHelper();
-            const response= await apiHelper.postJson(`${BaseUrl}/groups`, request);
-            if(!response || response.data){
+            const response= await apiHelper.postJson(CREATEUSERCONV, request);
+            if(!response || !response.data){
                 throw new Error("Invalid response format");
             }
             return response as IConversationResponse;
         } catch (error) {
-            console.log("Error creating conversations", error);
+            console.log("Error createing conversation", error);
             throw error;
         }
     }

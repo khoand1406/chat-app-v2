@@ -199,11 +199,13 @@ export class ConversationServices {
         throw new Error("Invalid participants");
       }
       const userConversations = await UserConversation.findAll({
-        where: { userId: currentUserId },
-        include: [Conversation],
-      });
+  where: { userId: currentUserId },
+  include: [Conversation],
+  transaction
+});
 
-      const targetUser = await User.findByPk(participantId);
+
+      const targetUser = await User.findByPk(participantId, {transaction});
       if (!targetUser) {
         throw new Error("Invalid target");
       }
@@ -213,6 +215,7 @@ export class ConversationServices {
             conversationId: uc.conversationId,
             userId: participantId,
           },
+          transaction
         });
 
         if (otherParticipant) {

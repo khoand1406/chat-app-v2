@@ -63,8 +63,28 @@ class ApiHelper{
     } catch (error: any) {
         this.handleError(error);
     }
+  }
 
-    
+  async postFormData(url:string, data:any):Promise<any>{
+    try {
+        const token= localStorage.getItem("accessToken");
+        const response= await axios.post(`${this.baseUrl}${url}`, data, {
+            headers: {
+                "Content-Type":"multipart/form-data",
+                'Authorization': `Bearer ${token}`
+            }
+        
+        })
+        return response.data;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+        throw error;
+      }
+
+      // Trường hợp lỗi không phải từ Axios
+      console.error("Lỗi không phải Axios:", error);
+      throw new Error("Lỗi không xác định trong postJson.");
+    }
   }
     async get(url: string): Promise<any> {
         try {
