@@ -80,6 +80,11 @@ export class ConversationController {
       }
       const Conversation = new groupCreateRequest(data, avatarUrl);
       const result = await this._service.createGroupConversation(Conversation, userId);
+      const io= request.app.get("io");
+      const allMemberIds= [userId, ...data.participantIds];
+      allMemberIds.forEach((item)=> {
+        io.to(`user_${item}`).emit("conversationCreated", result);
+      })
       return response.status(201).json(result);
     } catch (error) {
       return response.status(400).json({ Error: `${error}` });
@@ -120,6 +125,10 @@ export class ConversationController {
       }
       const Conversation= new userConversationCreateRequest(data);
       const result = await this._service.gerorcreateUserConversation(Conversation, userId);
+      const io= request.app.get("io");
+      io.to(`user_${userId}`).emit("conversationCreated", result);
+      io.to(`user_${userReceiver.id}`).emit("conversationCreated", result);
+      
       return response.status(201).json(result);
     } catch (error) {
       if (error instanceof Error) {

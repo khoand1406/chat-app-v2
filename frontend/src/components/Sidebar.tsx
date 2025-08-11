@@ -24,11 +24,11 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [isCreateOpen, setCreateOpen] = useState(false);
 
   const filteredPersonal = personalConversations.filter((conv) =>
-    conv.displayname.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-  const filteredGroups = groupConversations.filter((conv) =>
-    conv.displayname.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  (conv.displayname ?? "").toLowerCase().includes(searchTerm.toLowerCase())
+);
+const filteredGroups = groupConversations.filter((conv) =>
+  (conv.displayname ?? "").toLowerCase().includes(searchTerm.toLowerCase())
+);
 
   const renderConversationList = (list: typeof conversations) => (
     <ul>
@@ -46,14 +46,14 @@ const Sidebar: React.FC<SidebarProps> = ({
               conv.avatarUrl && conv.avatarUrl.trim() !== ""
                 ? conv.avatarUrl
                 : `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                    conv.displayname
+                    conv.displayname? conv.displayname: ''
                   )}&background=random`
             }
             alt={conv.displayname}
             className="w-6 h-6 rounded-full object-cover border border-gray-300"
             onError={(e) => {
               e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                conv.displayname
+                conv.displayname? conv.displayname: ''
               )}&background=random`;
             }}
           />
@@ -63,23 +63,22 @@ const Sidebar: React.FC<SidebarProps> = ({
     </ul>
   );
 
-  async function handleCreateGroup(formData: FormData): Promise<void> {
-    try {
-       if (!formData) {
+  async function handleCreateGroup(formData: FormData): Promise<boolean> {
+  try {
+    if (!formData) {
       toast("Invalid field", { position: "top-right", hideProgressBar: true });
-      return;
+      return false;
     }
-
     if (formData.getAll("participantIds").length > 1) {
-
       // Group
       const response = await createGroupConversations(formData);
       if (!response) {
         toast("Invalid request! Try Again");
-        return;
+        return false;
       }
       setCreateOpen(false)
       onSelect(response.id);
+      return true;
     } else {
       // 1-1
       const payload: IUserConversationCreateRequest = {
@@ -89,17 +88,17 @@ const Sidebar: React.FC<SidebarProps> = ({
       const response = await createUserConversation(payload);
       if (!response) {
         console.log("Invalid request");
-        return;
+        return false;
       }
       setCreateOpen(false);
-    
       onSelect(response.id);
+      return true;
     }
   } catch (error) {
     console.log(error);
+    return false;
   }
-  }
-
+}
   return (
     <div
       className={classNames(

@@ -42,7 +42,7 @@ export default function CreateGroupModal({ onSubmit, isOpen, onClose }: any) {
 
   return () => clearTimeout(timeout);
 }, [search]);
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
   const formData = new FormData();
   formData.append("name", name);
@@ -53,7 +53,7 @@ export default function CreateGroupModal({ onSubmit, isOpen, onClose }: any) {
       formData.append("participantIds", u.id.toString());
     });
   } else if (selectedUsers.length === 1) {
-    // 1-1: append 1 participantId
+    
     formData.append("participantId", selectedUsers[0].id.toString());
   }
 
@@ -61,8 +61,10 @@ export default function CreateGroupModal({ onSubmit, isOpen, onClose }: any) {
     formData.append("avatarUrl", avatarFile);
   }
 
-  onSubmit(formData);
-  onClose();
+  const success = await onSubmit(formData);
+  if(success) {
+    onClose();
+  }
   };
 
   const addUser = (user: any) => {

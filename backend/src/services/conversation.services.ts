@@ -131,7 +131,6 @@ export class ConversationServices {
       let avatarUrl= conversation.avatarUrl || ""
       if (!conversation.isGroup) {
         const otherUser = conversation.users?.find((u) => u.id !== userId);
-        console.log("Otherrrrrrrrrrr: ", otherUser?.userName);
         if (otherUser) {
           displayName = otherUser.userName,
           avatarUrl= otherUser.avatarUrl || "";
@@ -194,7 +193,7 @@ export class ConversationServices {
   ): Promise<ConversationResponse> {
     const transaction = await sequelize.transaction();
     try {
-      const { participantId, isGroup } = model;
+      const { participantId } = model;
       if (!model.participantId) {
         throw new Error("Invalid participants");
       }
@@ -204,25 +203,35 @@ export class ConversationServices {
   transaction
 });
 
+const targetUser = await User.findByPk(participantId, { transaction });
+if (!targetUser) {
+  throw new Error("Invalid target");
+}
 
-      const targetUser = await User.findByPk(participantId, {transaction});
-      if (!targetUser) {
-        throw new Error("Invalid target");
-      }
       for (const uc of userConversations) {
-        const otherParticipant = await UserConversation.findOne({
-          where: {
-            conversationId: uc.conversationId,
-            userId: participantId,
-          },
-          transaction
-        });
+  const conversation = await Conversation.findOne({
+    where: {
+      id: uc.conversationId,
+      isGroup: false,
+    },
+    transaction
+  });
 
-        if (otherParticipant) {
-          // Found existing 1-1 conversation
-          return new ConversationResponse(uc.conversation, targetUser.userName);
-        }
-      }
+  if (!conversation) continue;
+
+  const otherParticipant = await UserConversation.findOne({
+    where: {
+      conversationId: uc.conversationId,
+      userId: participantId,
+    },
+    transaction
+  });
+
+  if (otherParticipant) {
+    
+    return new ConversationResponse(conversation, targetUser.userName);
+  }
+}
 
       const payload: ConversationCreationAttribute = {
         name: "",

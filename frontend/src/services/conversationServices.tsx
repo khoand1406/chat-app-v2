@@ -23,7 +23,7 @@ import ApiHelper from "../utils/ApiHelper";
         try {
             const apiHelper= new ApiHelper();
             const response= await apiHelper.postJson(`${BaseUrl}/users`, request);
-            if(!response || response.data){
+            if(!response){
                 throw new Error("Invalid response format");
             }
             return response as IConversationResponse;
@@ -42,7 +42,7 @@ import ApiHelper from "../utils/ApiHelper";
     // Gửi nguyên formData
     const response = await apiHelper.postFormData(CREATEGROUP, formData);
 
-    if (!response || !response.data) {
+    if (!response) {
       throw new Error("Invalid response format");
     }
 
@@ -57,7 +57,7 @@ import ApiHelper from "../utils/ApiHelper";
         try {
             const apiHelper= new ApiHelper();
             const response= await apiHelper.postJson(CREATEUSERCONV, request);
-            if(!response || !response.data){
+            if(!response){
                 throw new Error("Invalid response format");
             }
             return response as IConversationResponse;

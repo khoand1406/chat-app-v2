@@ -3,6 +3,7 @@ import MessageInput from  './MessageInput';
 import type { ChatWindowProps } from '../models/props/ChatWindowProps';
 
 const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, messages, currentUserId, displayName, avatarUrl }) => {
+  console.log(conversationId, messages, currentUserId, displayName,avatarUrl )
   return (
     
     <div className="flex flex-col h-full">

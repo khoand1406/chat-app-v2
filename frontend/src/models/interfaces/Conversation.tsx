@@ -1,12 +1,13 @@
 export interface IConversationResponse {
-  id: number;
-  name: string;
-  isGroup: boolean;
-  createdAt: Date;
-  displayname:string;
-  avatarUrl?: string;
-  lastMessage?: string;
-  timestamp?: Date
+  id: number
+  Name?: string
+  isGroup: boolean
+    createdAt: Date
+    displayname?: string
+    avatarUrl?: string
+    lastMessage?:string
+    timestamp?: string
+
 };
 
 export interface IUserConversationCreateRequest{
