@@ -6,4 +6,5 @@ const controller = new MessageController();
 
 router.get("/:id/messages", controller.getMessages);
 router.post("/send", controller.sendMessage);
+router.post("/read", controller.readMessages)
 export default router;

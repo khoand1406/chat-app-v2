@@ -5,6 +5,7 @@ import { Message } from "../models/message.model";
 import { User } from "../models/user.model";
 import { UserConversation } from "../models/userconversation.model";
 import { UserMessages } from "../models/usermessages";
+import { Op } from "sequelize";
 
 export class MessageService{
     async sendMessage(model: CreateMessageRequest): Promise<CreateMessageResponse>{
@@ -38,11 +39,34 @@ export class MessageService{
             if (!message) {
                 throw new Error("Message creation failed");
             }   
-            await transaction.commit();
+            
             if (!message.id) {
                 throw new Error("Message ID not found after creation");
             }
-            return new CreateMessageResponse(message);
+             const participants = await UserConversation.findAll({
+            where: {
+                conversationId: model.conversationId,
+                userId: { [Op.ne]: model.senderId }
+            },
+            transaction
+        });
+
+        // 3. Insert vào UsersMessages (isRead = false)
+        const userMessagesData = participants.map(p => ({
+            userId: p.userId,
+            messageId: message.id,
+            isRead: false,
+            readAt: null
+        }));
+
+        if (userMessagesData.length > 0) {
+            await UserMessages.bulkCreate(userMessagesData, { transaction });
+        }
+
+        await transaction.commit();
+
+        return new CreateMessageResponse(message);
+
         } catch (error) {
             console.error("Error sending message:", error);
             await transaction.rollback();
@@ -56,34 +80,30 @@ export class MessageService{
         }
     }
 
-    async getMessageByConversation(
+   async getMessageByConversation(
   conversationId: number,
   currentUserId: number
 ): Promise<CreateMessageResponse[]> {
   const messages = await Message.findAll({
-    where: {
-      conversationId: conversationId
-    },
+    where: { conversationId },
     order: [['sendAt', 'ASC']],
     include: [
-      // Lấy thông tin người gửi
       {
-        model: User, 
+        model: User,
         attributes: ['id', 'userName', 'avatarUrl']
       },
-      // Lấy trạng thái đọc tin của currentUser
       {
         model: UserMessages,
-        where: {
-          userId: currentUserId
-        },
+        as: 'seenBy',
+        where: { userId: currentUserId },
         required: false,
         attributes: ['isRead', 'readAt']
       }
-    ]
+    ],
+    raw: false,
+    nest: true
   });
-
-   return messages.map(msg => ({
+  return messages.map(msg => ({
     id: msg.id,
     conversationId: msg.conversationId,
     content: msg.content,
@@ -93,5 +113,59 @@ export class MessageService{
     isRead: msg.seenBy?.[0]?.isRead ?? false,
     readAt: msg.seenBy?.[0]?.readAt ?? undefined
   }));
+}
+async setReadMessages(currentUserId: number, conversationId:number):Promise<void>{
+   const transaction = await sequelize.transaction();
+    try {
+        // 1. Kiểm tra user có trong conversation không
+        const isParticipant = await UserConversation.findOne({
+            where: { userId: currentUserId, conversationId },
+            transaction
+        });
+        if (!isParticipant) {
+            throw new Error("User is not a participant in this conversation");
+        }
+
+        // 2. Lấy tất cả tin nhắn không phải của user này
+        const messages = await Message.findAll({
+            where: {
+                conversationId,
+                senderId: { [Op.ne]: currentUserId }
+            },
+            transaction
+        });
+
+        if (messages.length === 0) {
+            await transaction.commit();
+            return;
+        }
+
+        const now = new Date();
+
+        
+        for (const msg of messages) {
+  const [record, created] = await UserMessages.findOrCreate({
+    where: { userId: currentUserId, messageId: msg.id },
+    defaults: {
+      isRead: true,
+      readAt: now
+    },
+    transaction
+  });
+
+  if (!created) {
+    await record.update({
+      isRead: true,
+      readAt: now
+    }, { transaction });
+  }
+}
+
+        await transaction.commit();
+    } catch (error) {
+        await transaction.rollback();
+        console.error("Error setting read messages:", error);
+        throw error;
+    }
 }
 }

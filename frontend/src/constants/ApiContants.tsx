@@ -6,8 +6,11 @@ export const REGISTER_PATH = `/api/auth/register`;
 export const USERLIST= '/api/users';
 export const USERDETAIL= (userid: number)=> `/api/users/${userid}`
 export const USER_CONVERSATIONS= (userId: number) => `/api/users/conversation/${userId}`
+export const USER_LIST_BY_CONVERSATION= (convId: number)=> `/api/users/conversation/${convId}`
 
 export const CONVERSATIONS_PATH = `/api/conversations`;
+export const CONVERSATIONS_DETAIL= (id: number)=> `/api/conversations/${id}`
+
 export const CREATEGROUP= '/api/conversations/group'
 export const CREATEUSERCONV= '/api/conversations/user'
 export const GETCONV= '/api/conversations/'

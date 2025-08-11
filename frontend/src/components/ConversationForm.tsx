@@ -13,7 +13,7 @@ export default function CreateGroupModal({ onSubmit, isOpen, onClose }: any) {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [, setAllUsers] = useState<any[]>([]);
 
-  // Lấy danh sách user khi mở modal
+ 
   useEffect(() => {
     if (isOpen) {
       getUsers()
@@ -22,7 +22,7 @@ export default function CreateGroupModal({ onSubmit, isOpen, onClose }: any) {
     }
   }, [isOpen]);
 
-  // Search lọc từ danh sách đã load
+  
   useEffect(() => {
     if (!search.trim()) {
       setSearchResults([]);
@@ -106,7 +106,7 @@ export default function CreateGroupModal({ onSubmit, isOpen, onClose }: any) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="w-full border border-gray-300 rounded px-2 py-1"
-              required
+              
             />
           </div>
 

@@ -10,6 +10,7 @@ import { toast } from "react-toastify";
 import { useNavigate } from "react-router";
 import NavBar from "./NavBar";
 import { socket } from "../socket/config";
+import DetailSideBar from "./DetailSideBar";
 
 const ChatApp = () => {
   const [selectedConversationId, setSelectedConversationId] =
@@ -19,7 +20,7 @@ const ChatApp = () => {
     IConversationResponse[]
   >([]);
   const [messages, setMessages] = useState<MessageResponse[]>([]);
-
+  const [isDetailbarOpen, setIsDetailBarOpen]= useState(false);
   const userId = localStorage.getItem("userId");
 
   useEffect(() => {
@@ -75,7 +76,8 @@ const ChatApp = () => {
   }, [userId, navigate]);
   useEffect(() => {
     if (!selectedConversationId) return;
-
+    if(!userId) return;
+    
     const fetchMessagesById = async () => {
       try {
         const response = await getMessages(selectedConversationId);
@@ -86,7 +88,19 @@ const ChatApp = () => {
     };
 
     fetchMessagesById();
-  }, [selectedConversationId]);
+
+    const handleMessageSent = (message: MessageResponse) => {
+    
+    if (message.conversationId === selectedConversationId) {
+      setMessages(prev => [message, ...prev]);
+    }
+  };
+
+  socket.on("messageSent", handleMessageSent);
+    return ()=> {
+      socket.off("messageSent", handleMessageSent);
+    }
+  }, [selectedConversationId, userId]);
   return (
     <>
       <NavBar />
@@ -114,7 +128,6 @@ const ChatApp = () => {
         />
       </div>
     
-      
     </>
   );
 };

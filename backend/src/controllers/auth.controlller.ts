@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import { UserServices } from '../services/user.services';
 import jwt from 'jsonwebtoken';
 import { Token } from '../models/token';
+import { UserServices } from '../services/user.services';
 export class AuthController{
     private readonly _userService: UserServices;
     
@@ -23,7 +23,7 @@ export class AuthController{
             const user = await this._userService.authenticateUser(email, passwordHash);
             console.log("Authenticated user:", user);
             
-            const token = jwt.sign({ email }, secretKey, { expiresIn:  '7d' });
+            const token = jwt.sign({ email }, secretKey, { expiresIn:  '14d' });
             await Token.create({
                 userId: user.id,
                 token: token

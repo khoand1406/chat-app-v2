@@ -21,7 +21,7 @@ export const sendMessages= async (message: IMessageRequest):Promise<MessageRespo
     try {
         const apiHelper= new ApiHelper();
         const response= await apiHelper.post(MESSAGE_SEND, message)
-        if(response){
+        if(!response){
             throw new Error("Invalid response format");
         }
         console.log(response);
