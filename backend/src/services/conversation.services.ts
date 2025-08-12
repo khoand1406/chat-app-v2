@@ -12,93 +12,93 @@ import { UserConversation } from "../models/userconversation.model";
 
 export class ConversationServices {
   async createGroupConversation(
-  model: groupCreateRequest,
-  currentUserId: number
-): Promise<ConversationResponse> {
-  const transaction = await sequelize.transaction();
-  try {
-    
-    let participantIds: number[] = [];
+    model: groupCreateRequest,
+    currentUserId: number
+  ): Promise<ConversationResponse> {
+    const transaction = await sequelize.transaction();
+    try {
+      let participantIds: number[] = [];
 
-    if (typeof model.participantIds === "string") {
-      try {
-        participantIds = JSON.parse(model.participantIds);
-      } catch {
-        throw new Error("Invalid participantIds format (must be JSON array)");
+      if (typeof model.participantIds === "string") {
+        try {
+          participantIds = JSON.parse(model.participantIds);
+        } catch {
+          throw new Error("Invalid participantIds format (must be JSON array)");
+        }
+      } else if (Array.isArray(model.participantIds)) {
+        participantIds = model.participantIds;
+      } else {
+        throw new Error("participantIds must be an array or JSON string");
       }
-    } else if (Array.isArray(model.participantIds)) {
-      participantIds = model.participantIds;
-    } else {
-      throw new Error("participantIds must be an array or JSON string");
-    }
 
-    
-    const participantsId = [...new Set([...participantIds, currentUserId])]
-      .map((id) => Number(id))
-      .filter((id) => !isNaN(id));
+      const participantsId = [...new Set([...participantIds, currentUserId])]
+        .map((id) => Number(id))
+        .filter((id) => !isNaN(id));
 
-    console.log("Final participant IDs:", participantsId);
+      console.log("Final participant IDs:", participantsId);
 
-    
-    if (participantsId.length < 3) {
-      throw new Error("Group conversation must have at least 3 participants");
-    }
-
-    const existingConversations = await Conversation.findAll({
-      where: { isGroup: true },
-      include: [
-        {
-          model: User,
-          where: { id: participantsId },
-          through: { attributes: [] },
-        },
-      ],
-      transaction,
-    });
-
-    for (const conv of existingConversations) {
-      const users = await conv.$get("users", { transaction });
-      const userIds = users.map((u) => u.id).sort();
-      if (JSON.stringify(userIds) === JSON.stringify([...participantsId].sort())) {
-        await transaction.rollback();
-        return new ConversationResponse(conv); // nhóm đã tồn tại
+      if (participantsId.length < 3) {
+        throw new Error("Group conversation must have at least 3 participants");
       }
+
+      const existingConversations = await Conversation.findAll({
+        where: { isGroup: true },
+        include: [
+          {
+            model: User,
+            where: { id: participantsId },
+            through: { attributes: [] },
+          },
+        ],
+        transaction,
+      });
+
+      for (const conv of existingConversations) {
+        const users = await conv.$get("users", { transaction });
+        const userIds = users.map((u) => u.id).sort();
+        if (
+          JSON.stringify(userIds) === JSON.stringify([...participantsId].sort())
+        ) {
+          await transaction.rollback();
+          return new ConversationResponse(conv); // nhóm đã tồn tại
+        }
+      }
+
+      const payload: ConversationCreationAttribute = {
+        name: model.name || "",
+        isGroup: true,
+        createdAt: new Date(),
+        avatarUrl: model.avatarUrl || "",
+      };
+
+      const conversation = await Conversation.create(payload, { transaction });
+
+      if (!conversation || !conversation.id) {
+        throw new Error("Conversation creation failed");
+      }
+
+      const users = await User.findAll({
+        where: { id: participantsId },
+        transaction,
+      });
+
+      if (users.length !== participantsId.length) {
+        throw new Error("Some participant IDs are invalid");
+      }
+      await conversation.$add("users", users, { transaction });
+
+      await transaction.commit();
+      return new ConversationResponse(conversation);
+    } catch (error) {
+      console.error("Error creating group conversation:", error);
+      await transaction.rollback();
+      throw new Error(
+        `Error creating group conversation: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     }
-
-    const payload: ConversationCreationAttribute = {
-      name: model.name || "",
-      isGroup: true,
-      createdAt: new Date(),
-      avatarUrl: model.avatarUrl || "",
-    };
-
-    const conversation = await Conversation.create(payload, { transaction });
-
-    if (!conversation || !conversation.id) {
-      throw new Error("Conversation creation failed");
-    }
-
-    const users = await User.findAll({
-      where: { id: participantsId },
-      transaction,
-    });
-
-    if (users.length !== participantsId.length) {
-      throw new Error("Some participant IDs are invalid");
-    }
-    await conversation.$add("users", users, { transaction });
-
-    await transaction.commit();
-    return new ConversationResponse(conversation);
-
-  } catch (error) {
-    console.error("Error creating group conversation:", error);
-    await transaction.rollback();
-    throw new Error(
-      `Error creating group conversation: ${error instanceof Error ? error.message : "Unknown error"}`
-    );
   }
-}
 
   async getUserConversations(userId: number): Promise<ConversationResponse[]> {
     const user = await User.findByPk(userId, {
@@ -113,12 +113,12 @@ export class ConversationServices {
               through: { attributes: [] },
             },
             {
-            model: Message,
-            attributes: ["id", "content", "sendAt"],
-            separate: true,
-            order: [["sendAt", "DESC"]],
-            limit: 1,
-          },
+              model: Message,
+              attributes: ["id", "content", "sendAt"],
+              separate: true,
+              order: [["sendAt", "DESC"]],
+              limit: 1,
+            },
           ],
         },
       ],
@@ -126,22 +126,37 @@ export class ConversationServices {
 
     if (!user || !user.conversations) return [];
 
-    return user.conversations.map((conversation) => {
+    const conversations= user.conversations.map((conversation) => {
       let displayName = conversation.name || "";
-      let avatarUrl= conversation.avatarUrl || ""
+      let avatarUrl = conversation.avatarUrl || "";
       if (!conversation.isGroup) {
         const otherUser = conversation.users?.find((u) => u.id !== userId);
         if (otherUser) {
-          displayName = otherUser.userName,
-          avatarUrl= otherUser.avatarUrl || "";
+          (displayName = otherUser.userName),
+            (avatarUrl = otherUser.avatarUrl || "");
         }
       }
       const lastMessage = conversation.messages?.[0] || null;
-    const lastMessageContent = lastMessage ? lastMessage.content : "";
-    const timestamp = lastMessage?.sendAt ? lastMessage.sendAt.toISOString() : '';
+      const lastMessageContent = lastMessage ? lastMessage.content : "";
+      const timestamp = lastMessage?.sendAt
+        ? lastMessage.sendAt.toISOString()
+        : "";
       
-      return new ConversationResponse(conversation.get(), displayName, avatarUrl, lastMessageContent, timestamp);
+      return new ConversationResponse(
+        conversation.get(),
+        displayName,
+        avatarUrl,
+        lastMessageContent,
+        timestamp,
+      );
     });
+
+    conversations.sort(
+    (a, b) =>
+      new Date(b.timestamp || 0).getTime() -
+      new Date(a.timestamp || 0).getTime()
+  );
+  return conversations;
   }
 
   async addUserToConversation(
@@ -161,31 +176,6 @@ export class ConversationServices {
       throw Error(`Errors when update database: ${error}`);
     }
   }
-  async getUsersConversation(
-    conversationId: number,
-    userId: number
-  ): Promise<ConversationResponse[]> {
-    try {
-      const conversation = await Conversation.findAll({
-        where: {
-          id: conversationId,
-        },
-        include: {
-          model: User,
-          where: {
-            id: userId,
-          },
-          through: {
-            attributes: [],
-          },
-          attributes: ["id", "userName"],
-        },
-      });
-      return conversation.map((item) => new ConversationResponse(item));
-    } catch (error) {
-      throw Error(`Failed: ${error}`);
-    }
-  }
 
   async gerorcreateUserConversation(
     model: userConversationCreateRequest,
@@ -198,40 +188,39 @@ export class ConversationServices {
         throw new Error("Invalid participants");
       }
       const userConversations = await UserConversation.findAll({
-  where: { userId: currentUserId },
-  include: [Conversation],
-  transaction
-});
+        where: { userId: currentUserId },
+        include: [Conversation],
+        transaction,
+      });
 
-const targetUser = await User.findByPk(participantId, { transaction });
-if (!targetUser) {
-  throw new Error("Invalid target");
-}
+      const targetUser = await User.findByPk(participantId, { transaction });
+      if (!targetUser) {
+        throw new Error("Invalid target");
+      }
 
       for (const uc of userConversations) {
-  const conversation = await Conversation.findOne({
-    where: {
-      id: uc.conversationId,
-      isGroup: false,
-    },
-    transaction
-  });
+        const conversation = await Conversation.findOne({
+          where: {
+            id: uc.conversationId,
+            isGroup: false,
+          },
+          transaction,
+        });
 
-  if (!conversation) continue;
+        if (!conversation) continue;
 
-  const otherParticipant = await UserConversation.findOne({
-    where: {
-      conversationId: uc.conversationId,
-      userId: participantId,
-    },
-    transaction
-  });
+        const otherParticipant = await UserConversation.findOne({
+          where: {
+            conversationId: uc.conversationId,
+            userId: participantId,
+          },
+          transaction,
+        });
 
-  if (otherParticipant) {
-    
-    return new ConversationResponse(conversation, targetUser.userName);
-  }
-}
+        if (otherParticipant) {
+          return new ConversationResponse(conversation, targetUser.userName);
+        }
+      }
 
       const payload: ConversationCreationAttribute = {
         name: "",

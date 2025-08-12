@@ -6,6 +6,8 @@ import { Token } from "../models/token";
 import { UserConversation } from "../models/userconversation.model";
 import { Conversation } from "../models/conversation.model";
 import { error } from "console";
+import { Message } from "../models/message.model";
+import { User } from "../models/user.model";
 export class MessageController {
   private _messageService: MessageService;
   constructor(private readonly messageService?: MessageService) {
@@ -63,6 +65,14 @@ export class MessageController {
       const messageDto = new CreateMessageRequest(data, userId);
 
       const result = await this._messageService.sendMessage(messageDto);
+      const fullMessage = await Message.findByPk(result.id, {
+    include: [
+        {
+            model: User,
+            attributes: ['id', 'userName', 'avatarUrl']
+        }
+    ]
+});
 
       const io = request.app.get("io");
 
@@ -73,19 +83,18 @@ export class MessageController {
         });
         const allMemberIds = members.map((m) => m.userId);
         allMemberIds.forEach((uid) =>
-          io.to(`user_${uid}`).emit("messageSent", result)
+          io.to(`user_${uid}`).emit("messageSent", fullMessage)
         );
       } else {
         const members= await UserConversation.findAll({where: {conversationId: conversation?.id},
         attributes: ['userId']});
         const allMemberIds= members.map(item=> item.userId);
         allMemberIds.forEach(element => {
-            io.to(`user_${element}`).emit("messageSent", result);
+            io.to(`user_${element}`).emit("messageSent", fullMessage);
         });
       }
       
-
-      return response.status(201).json(result);
+      return response.status(201).json(fullMessage);
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);

@@ -4,7 +4,7 @@ export interface MessageResponse{
     senderId: number
     content: string
     sendAt: Date
-    sender: ISender
+    user: ISender
 }
 
 export interface IMessageRequest{

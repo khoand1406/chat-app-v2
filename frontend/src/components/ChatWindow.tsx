@@ -3,7 +3,7 @@ import MessageInput from  './MessageInput';
 import type { ChatWindowProps } from '../models/props/ChatWindowProps';
 
 const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, messages, currentUserId, displayName, avatarUrl }) => {
-  console.log(conversationId, messages, currentUserId, displayName,avatarUrl )
+  
   return (
     
     <div className="flex flex-col h-full">
@@ -28,9 +28,11 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, messages, curre
       </div>
 
       {/* Input */}
-      <div className="border-t border-gray-300">
+      {conversationId && 
+      (<div className="border-t border-gray-300">
         <MessageInput conversationId={conversationId} />
-      </div>
+      </div>)}
+      
     </div>
   );
 };

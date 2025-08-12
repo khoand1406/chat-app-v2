@@ -15,6 +15,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, currentUserId }) =>
       ) : (
         messages.map((msg) => {
           const isMine = msg.senderId === currentUserId;
+          console.log(msg)
           return (
             <div
               key={msg.id}
@@ -23,9 +24,10 @@ const MessageList: React.FC<MessageListProps> = ({ messages, currentUserId }) =>
               }`}
             >
               {!isMine && (
+                
                 <img
-                  src={msg.sender.avatarUrl?msg.sender.avatarUrl : `https://ui-avatars.com/api/?name=${encodeURIComponent(msg.sender.userName)}&background=random`}
-                  alt={msg.sender.userName}
+                  src={msg.user?.avatarUrl? msg.user?.avatarUrl : `https://ui-avatars.com/api/?name=${encodeURIComponent(msg.user?.userName? msg.user.userName:"name")}&background=random`}
+                  alt={msg.user.userName}
                   className="w-8 h-8 rounded-full flex-shrink-0"
                 />
               )}

@@ -83,39 +83,59 @@ export class MessageService{
    async getMessageByConversation(
   conversationId: number,
   currentUserId: number
-): Promise<CreateMessageResponse[]> {
+): Promise<any[]> {
   const messages = await Message.findAll({
     where: { conversationId },
     order: [['sendAt', 'ASC']],
     include: [
+      // Người gửi
       {
         model: User,
         attributes: ['id', 'userName', 'avatarUrl']
       },
+      // Danh sách người đã đọc
       {
         model: UserMessages,
-        as: 'seenBy',
-        where: { userId: currentUserId },
+        as: 'seenBy', 
         required: false,
-        attributes: ['isRead', 'readAt']
+        include: [
+          {
+            model: User,
+            attributes: ['id', 'userName', 'avatarUrl']
+          }
+        ]
       }
-    ],
-    raw: false,
-    nest: true
+    ]
   });
-  return messages.map(msg => ({
-    id: msg.id,
-    conversationId: msg.conversationId,
-    content: msg.content,
-    sendAt: msg.sendAt,
-    senderId: msg.senderId,
-    sender: msg.user,
-    isRead: msg.seenBy?.[0]?.isRead ?? false,
-    readAt: msg.seenBy?.[0]?.readAt ?? undefined
-  }));
+
+  return messages.map(msg => {
+    
+    const seenUsers = msg.seenBy
+      ?.filter(um => um.isRead)
+      ?.map(um => ({
+        id: um.user.id,
+        userName: um.user.userName,
+        avatarUrl: um.user.avatarUrl,
+        readAt: um.readAt
+      })) || [];
+
+    
+    const currentUserRead = seenUsers.some(u => u.id === currentUserId);
+
+    return {
+      id: msg.id,
+      conversationId: msg.conversationId,
+      content: msg.content,
+      sendAt: msg.sendAt,
+      senderId: msg.senderId,
+      user: msg.user,
+      isRead: currentUserRead,
+      seenBy: seenUsers
+    };
+  });
 }
-async setReadMessages(currentUserId: number, conversationId:number):Promise<void>{
-   const transaction = await sequelize.transaction();
+async setReadMessages(currentUserId: number, conversationId: number): Promise<void> {
+    const transaction = await sequelize.transaction();
     try {
         // 1. Kiểm tra user có trong conversation không
         const isParticipant = await UserConversation.findOne({
@@ -126,7 +146,7 @@ async setReadMessages(currentUserId: number, conversationId:number):Promise<void
             throw new Error("User is not a participant in this conversation");
         }
 
-        // 2. Lấy tất cả tin nhắn không phải của user này
+        // 2. Lấy tin nhắn không phải của user
         const messages = await Message.findAll({
             where: {
                 conversationId,
@@ -141,25 +161,48 @@ async setReadMessages(currentUserId: number, conversationId:number):Promise<void
         }
 
         const now = new Date();
+        const messageIds = messages.map(m => m.id);
 
         
-        for (const msg of messages) {
-  const [record, created] = await UserMessages.findOrCreate({
-    where: { userId: currentUserId, messageId: msg.id },
-    defaults: {
-      isRead: true,
-      readAt: now
-    },
-    transaction
-  });
+        const existingRecords = await UserMessages.findAll({
+            where: {
+                userId: currentUserId,
+                messageId: messageIds
+            },
+            transaction
+        });
 
-  if (!created) {
-    await record.update({
-      isRead: true,
-      readAt: now
-    }, { transaction });
-  }
-}
+        const existingMap = new Map(existingRecords.map(e => [e.messageId, e]));
+        const updates: Promise<any>[] = [];
+        const inserts: any[] = [];
+
+        for (const msg of messages) {
+            const existing = existingMap.get(msg.id);
+            if (existing) {
+                if (!existing.isRead) {
+                    updates.push(
+                        existing.update({ isRead: true, readAt: now }, { transaction })
+                    );
+                }
+            } else {
+                inserts.push({
+                    userId: currentUserId,
+                    messageId: msg.id,
+                    isRead: true,
+                    readAt: now
+                });
+            }
+        }
+
+        
+        if (inserts.length > 0) {
+            await UserMessages.bulkCreate(inserts, { transaction });
+        }
+
+        
+        if (updates.length > 0) {
+            await Promise.all(updates);
+        }
 
         await transaction.commit();
     } catch (error) {

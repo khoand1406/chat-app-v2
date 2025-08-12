@@ -1,11 +1,12 @@
 import classNames from "classnames";
-import React, { useState } from "react";
-import type { SidebarProps } from "../models/props/SidebarProps";
 import { Plus, Search } from "lucide-react";
-import CreateGroupModal from "./ConversationForm";
-import { createGroupConversations, createUserConversation } from "../services/conversationServices";
+import React, { useState } from "react";
 import { toast } from "react-toastify";
 import type { IUserConversationCreateRequest } from "../models/interfaces/Conversation";
+import type { SidebarProps } from "../models/props/SidebarProps";
+import { createGroupConversations, createUserConversation } from "../services/conversationServices";
+import { calculateTime } from "../utils/FormatDate";
+import CreateGroupModal from "./ConversationForm";
 
 const Sidebar: React.FC<SidebarProps> = ({
   conversations,
@@ -57,8 +58,21 @@ const filteredGroups = groupConversations.filter((conv) =>
               )}&background=random`;
             }}
           />
-          <span className="truncate text-xs">{conv.displayname}</span>
-        </li>
+          <div className="flex-1 min-w-0">
+      <div className="flex justify-between items-center">
+        <span className="truncate text-sm font-medium">
+          {conv.displayname}
+        </span>
+        {conv.timestamp && (<span className="text-xs text-gray-500 whitespace-nowrap">
+          {calculateTime(conv.timestamp)}
+        </span>)}
+        
+      </div>
+      <span className="truncate text-xs text-gray-600">
+       {conv.lastMessage}
+      </span>
+    </div>
+  </li>
       ))}
     </ul>
   );
@@ -102,7 +116,7 @@ const filteredGroups = groupConversations.filter((conv) =>
   return (
     <div
       className={classNames(
-        "bg-gray-100 border-r border-gray-300 h-full w-64 flex-shrink-0 overflow-y-auto z-10",
+        "bg-gray-100 border-r border-gray-300 h-full w-80 flex-shrink-0 overflow-y-auto z-10",
         "md:block",
         {
           hidden: !isMobileOpen,

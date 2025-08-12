@@ -10,7 +10,7 @@ import { toast } from "react-toastify";
 import { useNavigate } from "react-router";
 import NavBar from "./NavBar";
 import { socket } from "../socket/config";
-import DetailSideBar from "./DetailSideBar";
+
 
 const ChatApp = () => {
   const [selectedConversationId, setSelectedConversationId] =
@@ -20,7 +20,7 @@ const ChatApp = () => {
     IConversationResponse[]
   >([]);
   const [messages, setMessages] = useState<MessageResponse[]>([]);
-  const [isDetailbarOpen, setIsDetailBarOpen]= useState(false);
+ 
   const userId = localStorage.getItem("userId");
 
   useEffect(() => {
@@ -67,40 +67,58 @@ const ChatApp = () => {
  
 
   useEffect(() => {
-    if (!userId) {
-      toast("Invalid login session, navigating to Login...");
-      setTimeout(() => {
-        navigate("/login");
-      }, 2000);
-    }
-  }, [userId, navigate]);
-  useEffect(() => {
-    if (!selectedConversationId) return;
-    if(!userId) return;
-    
-    const fetchMessagesById = async () => {
-      try {
-        const response = await getMessages(selectedConversationId);
-        setMessages(response);
-      } catch (error) {
-        console.error("Error fetching messages:", error);
-      }
-    };
+  if (!userId) {
+    toast("Invalid login session, navigating to Login...");
+    setTimeout(() => {
+      navigate("/login");
+    }, 2000);
+  }
+}, [userId, navigate]);
 
-    fetchMessagesById();
+useEffect(() => {
+  if (!selectedConversationId || !userId) return;
 
-    const handleMessageSent = (message: MessageResponse) => {
-    
-    if (message.conversationId === selectedConversationId) {
-      setMessages(prev => [message, ...prev]);
+  const fetchMessagesById = async () => {
+    try {
+      const response = await getMessages(selectedConversationId);
+      setMessages(response);
+    } catch (error) {
+      console.error("Error fetching messages:", error);
     }
   };
 
+  fetchMessagesById();
+
+  const handleMessageSent = (message: MessageResponse) => {
+  if (message.conversationId === selectedConversationId) {
+    setMessages(prev => [...prev, message]);
+  }
+
+  setConversationsList(prev => {
+    const updatedList = prev.map(conv =>
+      conv.id === message.conversationId
+        ? {
+            ...conv,
+            lastMessage: message.content,
+            timestamp: message.sendAt.toString()
+          }
+        : conv
+    );
+
+    return updatedList.sort(
+      (a, b) => new Date(b.timestamp?b.timestamp: "").getTime() - new Date(a.timestamp? a.timestamp : "").getTime()
+    );
+  });
+};
+
   socket.on("messageSent", handleMessageSent);
-    return ()=> {
-      socket.off("messageSent", handleMessageSent);
-    }
-  }, [selectedConversationId, userId]);
+
+  return () => {
+    socket.off("messageSent", handleMessageSent);
+  };
+}, [selectedConversationId, userId]);
+
+
   return (
     <>
       <NavBar />

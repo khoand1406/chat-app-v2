@@ -2,11 +2,11 @@ export interface IConversationResponse {
   id: number
   Name?: string
   isGroup: boolean
-    createdAt: Date
-    displayname?: string
-    avatarUrl?: string
-    lastMessage?:string
-    timestamp?: string
+  createdAt: Date
+  displayname?: string
+  avatarUrl?: string
+  lastMessage?:string
+  timestamp?: string
 
 };
 

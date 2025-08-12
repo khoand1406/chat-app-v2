@@ -1,8 +1,10 @@
-import { Column, DataType, ForeignKey, Model, Table } from "sequelize-typescript";
+import { BelongsTo, Column, DataType, ForeignKey, Model, Table } from "sequelize-typescript";
 import { Message } from "./message.model";
 import { User } from "./user.model";
 
-@Table({ tableName: "UsersMessages", timestamps: false })
+@Table({ tableName: "UsersMessages", timestamps: false,indexes: [{ unique: true, fields: ['userId', 'messageId'] }] })
+
+
 export class UserMessages extends Model{
 
     @Column({ type: DataType.INTEGER ,primaryKey: true, allowNull: false, autoIncrement: true , unique: true })
@@ -22,5 +24,8 @@ export class UserMessages extends Model{
 
     @Column({ type: DataType.DATE, allowNull: true, defaultValue: DataType.NOW })
     readAt?: Date;
+
+    @BelongsTo(() => User)
+    user!: User;
 
 }

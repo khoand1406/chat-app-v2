@@ -7,8 +7,9 @@ export class ConversationResponse{
     avatarUrl?: string
     lastMessage?:string
     timestamp?: string
+    
 
-    constructor(conversation: any, displayName: string = '', avatarUrl: string = '', lastmessage: string= '', timesta: string= '' ){
+    constructor(conversation: any, displayName: string = '', avatarUrl: string = '', lastmessage: string= '', timesta: string= '', ){
         this.id= conversation.id,
         this.Name= conversation.name,
         this.isGroup= conversation.isGroup,
@@ -17,6 +18,7 @@ export class ConversationResponse{
         this.avatarUrl= conversation.avatarUrl || avatarUrl || '';
         this.lastMessage= lastmessage|| ''
         this.timestamp= timesta
+        
     }
 }
 
