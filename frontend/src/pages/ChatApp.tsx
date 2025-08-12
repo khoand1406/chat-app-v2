@@ -1,14 +1,14 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
-import Sidebar from "./Sidebar";
-import ChatWindow from "./ChatWindow";
-import type { IConversationResponse } from "../models/interfaces/Conversation";
-import { getConversations } from "../services/conversationServices";
-import { getMessages } from "../services/messageServices";
-import type { MessageResponse } from "../models/interfaces/Messages";
-import { toast } from "react-toastify";
 import { useNavigate } from "react-router";
-import NavBar from "./NavBar";
+import { toast } from "react-toastify";
+import ChatWindow from "../components/ChatWindow";
+import NavBar from "../components/NavBar";
+import Sidebar from "../components/Sidebar";
+import type { IConversationResponse } from "../models/interfaces/Conversation";
+import type { MessageResponse } from "../models/interfaces/Messages";
+import { getConversations } from "../services/conversationServices";
+import { getMessages, setReadMessages } from "../services/messageServices";
 import { socket } from "../socket/config";
 
 
@@ -20,8 +20,19 @@ const ChatApp = () => {
     IConversationResponse[]
   >([]);
   const [messages, setMessages] = useState<MessageResponse[]>([]);
- 
+  const [isChatWindowActive, setIsChatWindowActive]= useState(true);
   const userId = localStorage.getItem("userId");
+
+useEffect(() => {
+  const handleVisibilityChange = () => {
+    setIsChatWindowActive(document.visibilityState === "visible");
+  };
+  document.addEventListener("visibilitychange", handleVisibilityChange);
+
+  return () => {
+    document.removeEventListener("visibilitychange", handleVisibilityChange);
+  };
+}, []);
 
   useEffect(() => {
     if(!userId) return;
@@ -44,7 +55,6 @@ const ChatApp = () => {
     
     try {
       const fullConv = await getConversations();
-      console.log('Updated conversations:', fullConv);
       setConversationsList(fullConv);
       setSelectedConversationId(conv.id);
     } catch (err) {
@@ -78,6 +88,28 @@ const ChatApp = () => {
 useEffect(() => {
   if (!selectedConversationId || !userId) return;
 
+  const markRead= async()=> {
+    try {
+      await setReadMessages(selectedConversationId);
+       socket.emit("messagesRead", {
+        conversationId: selectedConversationId,
+        userId,
+      });
+      setConversationsList(prev =>
+  prev.map(conv =>
+    conv.id === selectedConversationId
+      ? { ...conv, unreadCount: 0 }
+      : conv
+  )
+);
+    } catch (error) {
+      console.log(error);
+      toast.error("Fail to mark as read");
+    }
+
+  }
+  markRead();
+
   const fetchMessagesById = async () => {
     try {
       const response = await getMessages(selectedConversationId);
@@ -89,26 +121,41 @@ useEffect(() => {
 
   fetchMessagesById();
 
-  const handleMessageSent = (message: MessageResponse) => {
+  const handleMessageSent = async (message: MessageResponse) => {
+  if (message.conversationId === selectedConversationId) {
+    setMessages(prev => [...prev, message]);
+    if(isChatWindowActive){
+      try {
+        await setReadMessages(selectedConversationId);
+        socket.emit("messageRead", {
+          conversationId: selectedConversationId,
+          userId: userId
+        });
+
+      } catch (error) {
+        console.error("Fail to mark read conversation message", error);
+      }
+    }
+  }
+
+  setConversationsList(prev =>
+    prev.map(conv => {
+      if (conv.id === message.conversationId) {
+        
+        if (conv.id === selectedConversationId) {
+          return { ...conv, lastMessage: message.content, timestamp: message.sendAt.toString(), unreadCount: 0 };
+        } else {
+          
+          return { ...conv, lastMessage: message.content, timestamp: message.sendAt.toString(), unreadCount: (conv.unreadCount || 0) + 1 };
+        }
+      }
+      return conv;
+    }).sort((a,b) => new Date(b.timestamp || "").getTime() - new Date(a.timestamp || "").getTime())
+  );
+
   if (message.conversationId === selectedConversationId) {
     setMessages(prev => [...prev, message]);
   }
-
-  setConversationsList(prev => {
-    const updatedList = prev.map(conv =>
-      conv.id === message.conversationId
-        ? {
-            ...conv,
-            lastMessage: message.content,
-            timestamp: message.sendAt.toString()
-          }
-        : conv
-    );
-
-    return updatedList.sort(
-      (a, b) => new Date(b.timestamp?b.timestamp: "").getTime() - new Date(a.timestamp? a.timestamp : "").getTime()
-    );
-  });
 };
 
   socket.on("messageSent", handleMessageSent);
@@ -118,6 +165,34 @@ useEffect(() => {
   };
 }, [selectedConversationId, userId]);
 
+  useEffect(() => {
+  const handleMessageRead = ({
+    conversationId,
+    userId: readerId,
+  }: {
+    conversationId: number;
+    userId: number;
+  }) => {
+    // Nếu là mình đọc thì set unreadCount = 0 cho chính mình
+    // Hoặc nếu là người khác đọc, thì mình có thể update nếu muốn hiển thị ai đã đọc
+    setConversationsList((prev) =>
+      prev.map((conv) =>
+        conv.id === conversationId
+          ? {
+              ...conv,
+              unreadCount: 0,
+            }
+          : conv
+      )
+    );
+  };
+
+  socket.on("messagesRead", handleMessageRead);
+
+  return () => {
+    socket.off("messagesRead", handleMessageRead);
+  };
+}, []);
 
   return (
     <>

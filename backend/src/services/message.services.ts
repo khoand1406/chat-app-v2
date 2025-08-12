@@ -51,7 +51,7 @@ export class MessageService{
             transaction
         });
 
-        // 3. Insert vào UsersMessages (isRead = false)
+       
         const userMessagesData = participants.map(p => ({
             userId: p.userId,
             messageId: message.id,
@@ -88,12 +88,12 @@ export class MessageService{
     where: { conversationId },
     order: [['sendAt', 'ASC']],
     include: [
-      // Người gửi
+      
       {
         model: User,
         attributes: ['id', 'userName', 'avatarUrl']
       },
-      // Danh sách người đã đọc
+      
       {
         model: UserMessages,
         as: 'seenBy', 
@@ -137,7 +137,7 @@ export class MessageService{
 async setReadMessages(currentUserId: number, conversationId: number): Promise<void> {
     const transaction = await sequelize.transaction();
     try {
-        // 1. Kiểm tra user có trong conversation không
+        
         const isParticipant = await UserConversation.findOne({
             where: { userId: currentUserId, conversationId },
             transaction
@@ -146,7 +146,7 @@ async setReadMessages(currentUserId: number, conversationId: number): Promise<vo
             throw new Error("User is not a participant in this conversation");
         }
 
-        // 2. Lấy tin nhắn không phải của user
+        
         const messages = await Message.findAll({
             where: {
                 conversationId,

@@ -9,6 +9,8 @@ import { Conversation } from "../models/conversation.model";
 import { Message } from "../models/message.model";
 import { User } from "../models/user.model";
 import { UserConversation } from "../models/userconversation.model";
+import { UserMessages } from "../models/usermessages";
+import { Op } from "sequelize";
 
 export class ConversationServices {
   async createGroupConversation(
@@ -34,8 +36,6 @@ export class ConversationServices {
       const participantsId = [...new Set([...participantIds, currentUserId])]
         .map((id) => Number(id))
         .filter((id) => !isNaN(id));
-
-      console.log("Final participant IDs:", participantsId);
 
       if (participantsId.length < 3) {
         throw new Error("Group conversation must have at least 3 participants");
@@ -114,7 +114,12 @@ export class ConversationServices {
             },
             {
               model: Message,
-              attributes: ["id", "content", "sendAt"],
+              include: [
+                {
+                  model: User,
+                  attributes: ["id", "userName", "avatarUrl"],
+                },
+              ],
               separate: true,
               order: [["sendAt", "DESC"]],
               limit: 1,
@@ -126,37 +131,62 @@ export class ConversationServices {
 
     if (!user || !user.conversations) return [];
 
-    const conversations= user.conversations.map((conversation) => {
-      let displayName = conversation.name || "";
-      let avatarUrl = conversation.avatarUrl || "";
-      if (!conversation.isGroup) {
-        const otherUser = conversation.users?.find((u) => u.id !== userId);
-        if (otherUser) {
-          (displayName = otherUser.userName),
-            (avatarUrl = otherUser.avatarUrl || "");
+    const conversationsWithUnread = await Promise.all(
+      user.conversations.map(async (conversation) => {
+        let displayName = conversation.name || "";
+        let avatarUrl = conversation.avatarUrl || "";
+
+        if (!conversation.isGroup) {
+          const otherUser = conversation.users?.find((u) => u.id !== userId);
+          if (otherUser) {
+            displayName = otherUser.userName;
+            avatarUrl = otherUser.avatarUrl || "";
+          }
         }
-      }
-      const lastMessage = conversation.messages?.[0] || null;
-      const lastMessageContent = lastMessage ? lastMessage.content : "";
-      const timestamp = lastMessage?.sendAt
-        ? lastMessage.sendAt.toISOString()
-        : "";
-      
-      return new ConversationResponse(
-        conversation.get(),
-        displayName,
-        avatarUrl,
-        lastMessageContent,
-        timestamp,
+
+        const lastMessage = conversation.messages?.[0] || null;
+        const lastMessageContent = lastMessage ? lastMessage.content : "";
+        const timestamp = lastMessage?.sendAt
+          ? lastMessage.sendAt.toISOString()
+          : "";
+
+        // Lấy unreadCount từ UserMessages
+        const unreadCount = await UserMessages.count({
+          where: {
+            userId: userId,
+            isRead: false,
+            messageId: {
+              [Op.in]: sequelize.literal(`(
+              SELECT id FROM Messages WHERE conversationId = ${conversation.id}
+            )`),
+            },
+          },
+        });
+
+        const lastUserSent = lastMessage?.user.userName||"";
+        return {
+          ...new ConversationResponse(
+            conversation.get(),
+            displayName,
+            avatarUrl,
+            lastMessageContent,
+            timestamp,
+            lastUserSent
+          ),
+          unreadCount,
+        };
+      })
+    );
+
+    // Sort: unread > 0 lên trước, sau đó theo timestamp mới nhất
+    return conversationsWithUnread.sort((a, b) => {
+      if (a.unreadCount > 0 && b.unreadCount === 0) return -1;
+      if (a.unreadCount === 0 && b.unreadCount > 0) return 1;
+      return (
+        new Date(b.timestamp || 0).getTime() -
+        new Date(a.timestamp || 0).getTime()
       );
     });
-
-    conversations.sort(
-    (a, b) =>
-      new Date(b.timestamp || 0).getTime() -
-      new Date(a.timestamp || 0).getTime()
-  );
-  return conversations;
   }
 
   async addUserToConversation(

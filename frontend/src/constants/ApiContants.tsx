@@ -8,6 +8,7 @@ export const USERDETAIL= (userid: number)=> `/api/users/${userid}`
 export const USER_CONVERSATIONS= (userId: number) => `/api/users/conversation/${userId}`
 export const USER_LIST_BY_CONVERSATION= (convId: number)=> `/api/users/conversation/${convId}`
 
+
 export const CONVERSATIONS_PATH = `/api/conversations`;
 export const CONVERSATIONS_DETAIL= (id: number)=> `/api/conversations/${id}`
 
@@ -17,3 +18,4 @@ export const GETCONV= '/api/conversations/'
 
 export const MESSAGES_PATH = (conversationId: number) => `/api/messages/${conversationId}/messages`;
 export const MESSAGE_SEND= '/api/messages/send'
+export const MESSAGE_READ= '/api/messages/read'

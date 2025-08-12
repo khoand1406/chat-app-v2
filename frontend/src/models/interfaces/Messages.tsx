@@ -5,6 +5,14 @@ export interface MessageResponse{
     content: string
     sendAt: Date
     user: ISender
+    seenBy: ISeen[]
+}
+
+export interface ISeen{
+    id: number,
+    userName: string,
+    avatarUrl:string,
+    readAt: Date,
 }
 
 export interface IMessageRequest{

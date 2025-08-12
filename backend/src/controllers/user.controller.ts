@@ -3,6 +3,7 @@ import { UserServices } from '../services/user.services';
 import { CreateUserRequest } from '../dtos/user/create-user.dto';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
+import { User } from '../models/user.model';
 export class UserController {
     private readonly _userService: UserServices;
     constructor(private readonly userService?: UserServices) {
@@ -27,21 +28,26 @@ export class UserController {
     createUser = async (request: Request, response: Response) => {
     try {
         const userData = request.body;
-        
-
         const userDto = plainToInstance(CreateUserRequest, userData);
-        
-
         const errors = await validate(userDto);
         if (errors.length > 0) {
             return response.status(400).json({ errors: errors.map(err => err.constraints) });
         }
         
+        const existingUser= await User.findOne({where: {
+            userName: userDto.username
+        }})
+
+        const existingMail= await User.findOne({where: {email: userDto.email}})
+        
+        if(existingUser || existingMail){
+            return response.status(400).json({error: "Existing email or password"});
+        }
         const newUser = await this._userService.createUsers(userDto);
 
         return response.status(201).json(newUser);
     } catch (error) {
-        return response.status(500).json({ Error: `${error}` });
+        return response.status(400).json({ Error: `${error}` });
     }
 };
     getUsers = async (request: Request, response: Response) => {

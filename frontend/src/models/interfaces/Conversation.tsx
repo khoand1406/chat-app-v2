@@ -7,7 +7,8 @@ export interface IConversationResponse {
   avatarUrl?: string
   lastMessage?:string
   timestamp?: string
-
+  unreadCount: number
+  lastUserSent?:string
 };
 
 export interface IUserConversationCreateRequest{

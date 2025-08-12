@@ -1,4 +1,4 @@
-import { MESSAGE_SEND, MESSAGES_PATH } from "../constants/ApiContants";
+import { MESSAGE_READ, MESSAGE_SEND, MESSAGES_PATH } from "../constants/ApiContants";
 import type { IMessageRequest, MessageResponse } from "../models/interfaces/Messages";
 import ApiHelper from "../utils/ApiHelper";
 
@@ -31,4 +31,19 @@ export const sendMessages= async (message: IMessageRequest):Promise<MessageRespo
         throw error;
     }
 
+}
+
+export const setReadMessages= async(conversationId: number): Promise<void>=>{
+    try {
+        const apiHelper= new ApiHelper();
+        const response= await apiHelper.post(MESSAGE_READ, {conversationId: conversationId});
+        if(!response){
+            throw new Error("Invalid response format");
+        }
+        if(response.status!=="success"){
+            throw new Error(response.error)
+        }
+    } catch (error) {
+        throw error;
+    }
 }

@@ -1,8 +1,7 @@
-import { Route } from 'react-router';
-import './App.css'
-import ChatApp from './components/ChatApp';
-import { BrowserRouter, Routes } from 'react-router';
-import LoginPage from './components/LoginComponent';
+import { BrowserRouter, Route, Routes } from 'react-router';
+import './App.css';
+import LoginPage from './pages/LoginComponent';
+import ChatApp from './pages/ChatApp';
 
 
 const App = () => {

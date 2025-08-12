@@ -14,22 +14,13 @@ const Sidebar: React.FC<SidebarProps> = ({
   onSelect,
   isMobileOpen,
 }) => {
-  const personalConversations = conversations.filter((conv) => !conv.isGroup);
-  const groupConversations = conversations.filter((conv) => conv.isGroup);
-
-  const [showConversations, setShowConversations] = useState(true);
-  const [showGroups, setShowGroups] = useState(true);
-
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [isCreateOpen, setCreateOpen] = useState(false);
 
-  const filteredPersonal = personalConversations.filter((conv) =>
-  (conv.displayname ?? "").toLowerCase().includes(searchTerm.toLowerCase())
-);
-const filteredGroups = groupConversations.filter((conv) =>
-  (conv.displayname ?? "").toLowerCase().includes(searchTerm.toLowerCase())
-);
+  const filteredList = conversations.filter((conv) =>
+    (conv.displayname ?? "").toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const renderConversationList = (list: typeof conversations) => (
     <ul>
@@ -47,72 +38,85 @@ const filteredGroups = groupConversations.filter((conv) =>
               conv.avatarUrl && conv.avatarUrl.trim() !== ""
                 ? conv.avatarUrl
                 : `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                    conv.displayname? conv.displayname: ''
+                    conv.displayname ?? ""
                   )}&background=random`
             }
             alt={conv.displayname}
             className="w-6 h-6 rounded-full object-cover border border-gray-300"
             onError={(e) => {
               e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                conv.displayname? conv.displayname: ''
+                conv.displayname ?? ""
               )}&background=random`;
             }}
           />
           <div className="flex-1 min-w-0">
-      <div className="flex justify-between items-center">
-        <span className="truncate text-sm font-medium">
-          {conv.displayname}
-        </span>
-        {conv.timestamp && (<span className="text-xs text-gray-500 whitespace-nowrap">
-          {calculateTime(conv.timestamp)}
-        </span>)}
-        
-      </div>
-      <span className="truncate text-xs text-gray-600">
-       {conv.lastMessage}
-      </span>
-    </div>
-  </li>
+            <div className="flex justify-between items-center">
+              <span
+                className={classNames(
+                  "truncate text-sm font-medium",
+                  conv.unreadCount > 0 ? "font-bold" : "font-normal"
+                )}
+              >
+                {conv.displayname}
+              </span>
+
+              {conv.unreadCount > 0 && (
+                <span className="bg-red-500 text-white text-xs font-medium px-2.5 py-0.5 rounded-full">
+                  {conv.unreadCount}
+                </span>
+              )}
+              {conv.timestamp && (
+                <span className="text-xs text-gray-500 whitespace-nowrap">
+                  {calculateTime(conv.timestamp)}
+                </span>
+              )}
+            </div>
+            {conv.lastMessage && (<span className="truncate text-xs text-gray-600">
+              
+              {conv.lastUserSent!==conv.displayname? "You": conv.lastUserSent}: {conv.lastMessage}
+            </span>)}
+            
+          </div>
+        </li>
       ))}
     </ul>
   );
 
   async function handleCreateGroup(formData: FormData): Promise<boolean> {
-  try {
-    if (!formData) {
-      toast("Invalid field", { position: "top-right", hideProgressBar: true });
+    try {
+      if (!formData) {
+        toast("Invalid field", { position: "top-right", hideProgressBar: true });
+        return false;
+      }
+      if (formData.getAll("participantIds").length > 1) {
+        const response = await createGroupConversations(formData);
+        if (!response) {
+          toast("Invalid request! Try Again");
+          return false;
+        }
+        setCreateOpen(false);
+        onSelect(response.id);
+        return true;
+      } else {
+        const payload: IUserConversationCreateRequest = {
+          participantId: parseInt(formData.get("participantId") as string),
+          createdAt: new Date(),
+        };
+        const response = await createUserConversation(payload);
+        if (!response) {
+          console.log("Invalid request");
+          return false;
+        }
+        setCreateOpen(false);
+        onSelect(response.id);
+        return true;
+      }
+    } catch (error) {
+      console.log(error);
       return false;
     }
-    if (formData.getAll("participantIds").length > 1) {
-      // Group
-      const response = await createGroupConversations(formData);
-      if (!response) {
-        toast("Invalid request! Try Again");
-        return false;
-      }
-      setCreateOpen(false)
-      onSelect(response.id);
-      return true;
-    } else {
-      // 1-1
-      const payload: IUserConversationCreateRequest = {
-        participantId: parseInt(formData.get("participantId") as string),
-        createdAt: new Date()
-      };
-      const response = await createUserConversation(payload);
-      if (!response) {
-        console.log("Invalid request");
-        return false;
-      }
-      setCreateOpen(false);
-      onSelect(response.id);
-      return true;
-    }
-  } catch (error) {
-    console.log(error);
-    return false;
   }
-}
+
   return (
     <div
       className={classNames(
@@ -124,7 +128,7 @@ const filteredGroups = groupConversations.filter((conv) =>
         }
       )}
     >
-      <div className="p-4 text-xl fondivold border-b border-gray-300 bg-white flex items-center">
+      <div className="p-4 text-xl font-bold border-b border-gray-300 bg-white flex items-center">
         <span>Chats</span>
         <button
           onClick={() => setSearchOpen(!searchOpen)}
@@ -151,42 +155,20 @@ const filteredGroups = groupConversations.filter((conv) =>
           />
         </div>
       )}
-      
-      <CreateGroupModal onSubmit={handleCreateGroup} isOpen= {isCreateOpen} onClose= {() => setCreateOpen(false)} />
-      {/* Conversations */}
-      <div>
-        <button
-          onClick={() => setShowConversations(!showConversations)}
-          className="w-full text-left px-4 py-2 font-semibold text-gray-600 hover:bg-gray-200 flex justify-between items-center"
-        >
-          <span>Conversations</span>
-          <span>{showConversations ? "▾" : "▸"}</span>
-        </button>
-        {showConversations &&
-          (filteredPersonal.length > 0 ? (
-            renderConversationList(filteredPersonal)
-          ) : (
-            <div className="px-4 py-2 text-gray-400 text-sm">
-              No conversations
-            </div>
-          ))}
-      </div>
 
-      {/* Groups */}
+      <CreateGroupModal
+        onSubmit={handleCreateGroup}
+        isOpen={isCreateOpen}
+        onClose={() => setCreateOpen(false)}
+      />
+
+      {/* Gộp tất cả conversation + group */}
       <div>
-        <button
-          onClick={() => setShowGroups(!showGroups)}
-          className="w-full text-left px-4 py-2 font-semibold text-gray-600 hover:bg-gray-200 flex justify-between items-center"
-        >
-          <span>Groups</span>
-          <span>{showGroups ? "▾" : "▸"}</span>
-        </button>
-        {showGroups &&
-          (filteredGroups.length > 0 ? (
-            renderConversationList(filteredGroups)
-          ) : (
-            <div className="px-4 py-2 text-gray-400 text-sm">No groups</div>
-          ))}
+        {filteredList.length > 0 ? (
+          renderConversationList(filteredList)
+        ) : (
+          <div className="px-4 py-2 text-gray-400 text-sm">No chats</div>
+        )}
       </div>
     </div>
   );

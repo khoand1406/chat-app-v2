@@ -93,10 +93,10 @@ const LoginPage = () => {
         <div className="w-full md:w-1/2 bg-white p-8 lg:p-12 animate-fadeIn">
           <div className="text-center mb-10">
             <h2 className="mt-6 text-3xl font-extrabold text-gray-900 mb-2">
-              Chào mừng quay lại!
+              WELCOME BACK!
             </h2>
             <p className="text-sm text-gray-600">
-              Vui lòng đăng nhập vào tài khoản của bạn
+              PLEASE LOGIN INTO YOUR ACCOUNT
             </p>
           </div>
 
@@ -107,7 +107,7 @@ const LoginPage = () => {
                   htmlFor="username"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Địa chỉ email hoặc số điện thoại
+                  Email
                 </label>
                 <input
                   id="username"
@@ -131,7 +131,7 @@ const LoginPage = () => {
                   htmlFor="password"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Mật khẩu
+                 Password
                 </label>
                 <input
                   id="password"
@@ -167,7 +167,7 @@ const LoginPage = () => {
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
           <div className="bg-white p-8 rounded-lg shadow-lg">
             <p className="text-lg font-semibold text-gray-800">
-              Đang đăng nhập, vui lòng chờ...
+              Please wait...
             </p>
           </div>
         </div>

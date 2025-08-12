@@ -18,3 +18,16 @@ export interface UserRole{
     userId: number;
     roleId: number;
 }
+
+export interface IRegisterUser{
+    username: string
+    email: string
+    password: string
+}
+
+export interface IRegisterResponse{
+    id:number
+    userName:string
+    email:string
+    avatarUrl?: string
+}
