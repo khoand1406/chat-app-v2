@@ -41,7 +41,7 @@ export class UserController {
         const existingMail= await User.findOne({where: {email: userDto.email}})
         
         if(existingUser || existingMail){
-            return response.status(400).json({error: "Existing email or password"});
+            return response.status(400).json({error: "Existing email or username"});
         }
         const newUser = await this._userService.createUsers(userDto);
 

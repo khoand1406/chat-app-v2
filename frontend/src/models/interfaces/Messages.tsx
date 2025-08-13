@@ -12,6 +12,7 @@ export interface ISeen{
     id: number,
     userName: string,
     avatarUrl:string,
+    isRead: boolean
     readAt: Date,
 }
 

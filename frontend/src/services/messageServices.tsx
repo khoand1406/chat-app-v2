@@ -9,7 +9,7 @@ export const getMessages= async (conversationId: number): Promise<MessageRespons
         if(!response || !Array.isArray(response)){
             throw new Error("Invalid response format");
         }
-        console.log(response);
+       
         return response as MessageResponse[];
     } catch (error) {
         console.log("Error fetching message with conversation ID: "+ conversationId)

@@ -120,6 +120,7 @@ export class MessageService{
       })) || [];
 
     
+
     const currentUserRead = seenUsers.some(u => u.id === currentUserId);
 
     return {

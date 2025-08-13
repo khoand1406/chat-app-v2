@@ -13,14 +13,19 @@ const Sidebar: React.FC<SidebarProps> = ({
   selectedId,
   onSelect,
   isMobileOpen,
+  currentUserId
 }) => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [isCreateOpen, setCreateOpen] = useState(false);
+  const [tab, setTab] = useState<"all" | "unread" | "read">("all");
 
   const filteredList = conversations.filter((conv) =>
     (conv.displayname ?? "").toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const unreadConversations = filteredList.filter((conv) => conv.unreadCount > 0);
+  const readConversations = filteredList.filter((conv) => conv.unreadCount === 0);
 
   const renderConversationList = (list: typeof conversations) => (
     <ul>
@@ -71,11 +76,11 @@ const Sidebar: React.FC<SidebarProps> = ({
                 </span>
               )}
             </div>
-            {conv.lastMessage && (<span className="truncate text-xs text-gray-600">
-              
-              {conv.lastUserSent!==conv.displayname? "You": conv.lastUserSent}: {conv.lastMessage}
-            </span>)}
-            
+            {conv.lastMessage && (
+              <span className="truncate text-xs text-gray-600">
+                {conv.lastUserSent === currentUserId? "You" : conv.lastUserName}: {conv.lastMessage}
+              </span>
+            )}
           </div>
         </li>
       ))}
@@ -162,18 +167,36 @@ const Sidebar: React.FC<SidebarProps> = ({
         onClose={() => setCreateOpen(false)}
       />
 
-      {/* Gộp tất cả conversation + group */}
+      {/* Tab lọc All / Unread / Read */}
+      <div className="flex gap-2 p-2 border-b border-gray-200 bg-white">
+        <button
+          className={classNames("px-2 py-1 rounded", tab === "all" ? "bg-blue-500 text-white" : "bg-gray-200")}
+          onClick={() => setTab("all")}
+        >
+          All
+        </button>
+        <button
+          className={classNames("px-2 py-1 rounded", tab === "unread" ? "bg-blue-500 text-white" : "bg-gray-200")}
+          onClick={() => setTab("unread")}
+        >
+          Unread
+        </button>
+        <button
+          className={classNames("px-2 py-1 rounded", tab === "read" ? "bg-blue-500 text-white" : "bg-gray-200")}
+          onClick={() => setTab("read")}
+        >
+          Read
+        </button>
+      </div>
+
+      {/* Render conversation theo tab */}
       <div>
-        {filteredList.length > 0 ? (
-          renderConversationList(filteredList)
-        ) : (
-          <div className="px-4 py-2 text-gray-400 text-sm">No chats</div>
-        )}
+        {tab === "all" && renderConversationList(filteredList)}
+        {tab === "unread" && renderConversationList(unreadConversations)}
+        {tab === "read" && renderConversationList(readConversations)}
       </div>
     </div>
   );
 };
 
 export default Sidebar;
-
-

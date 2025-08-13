@@ -7,10 +7,11 @@ export class ConversationResponse{
     avatarUrl?: string
     lastMessage?:string
     timestamp?: string
-    lastUserSent?: string
+    lastUserSent?: number
+    lastUserName?: string
     
 
-    constructor(conversation: any, displayName: string = '', avatarUrl: string = '', lastmessage: string= '', timesta: string= '', username: string=''){
+    constructor(conversation: any, displayName: string = '', avatarUrl: string = '', lastmessage: string= '', timesta: string= '', username: number=0, name: string= ''){
         this.id= conversation.id,
         this.Name= conversation.name,
         this.isGroup= conversation.isGroup,
@@ -20,6 +21,7 @@ export class ConversationResponse{
         this.lastMessage= lastmessage|| '';
         this.timestamp= timesta;
         this.lastUserSent= username;
+        this.lastUserName= name;
         
     }
 }

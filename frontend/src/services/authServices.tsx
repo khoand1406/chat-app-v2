@@ -16,7 +16,7 @@ export const loginUser= async (request: ILoginRequest): Promise<ILoginResponse> 
             if(error.response?.status===401){
                 throw new Error("Wrong email or password");
             }
-            throw new Error(error.response?.data?.message || "Lỗi khi gọi API.");
+            throw new Error(error.response?.data?.message || "Unexpected error occurs. Please try again later.");
         }
         console.error("Unexpected error: ", error);
         throw new Error("Lỗi không xác định!");
@@ -30,12 +30,9 @@ export const registerUser= async (request:IRegisterUser): Promise<IRegisterRespo
         return response as IRegisterResponse;
     } catch (error) {
         if(axios.isAxiosError(error)){
-            if(error.response?.status===401){
-                throw new Error("Wrong email or password");
-            }
-            throw new Error(error.response?.data?.message || "Lỗi khi gọi API.");
+            throw new Error(error.response?.data?.error || "Unexpected error occurs. Please try again later.");
         }
         console.error("Unexpected error: ", error);
-        throw new Error("Lỗi không xác định!");
+        throw new Error("Unexpected error occurs. Please try again later.");
     }
 }

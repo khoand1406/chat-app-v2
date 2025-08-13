@@ -11,10 +11,12 @@ const MessageList: React.FC<MessageListProps> = ({ messages, currentUserId }) =>
   const getLastSeenMap = (messages: MessageResponse[]) => {
   const lastSeenMap: Record<number, number> = {};
 
-  messages.forEach((msg) => {
-    msg.seenBy.forEach((seen) => {
-      lastSeenMap[seen.id] = msg.id;
-    });
+   messages.forEach((msg) => {
+    if (Array.isArray(msg.seenBy)) {
+      msg.seenBy.forEach((seen) => {
+        lastSeenMap[seen.id] = msg.id ;
+      });
+    }
   });
 
   return lastSeenMap;
@@ -29,8 +31,8 @@ const MessageList: React.FC<MessageListProps> = ({ messages, currentUserId }) =>
         messages.map((msg) => {
           const isMine = msg.senderId === currentUserId;
           const seenUsersForThisMsg = msg.seenBy.filter(
-            (u) => lastSeenMap[u.id] === msg.id
-          );
+  (u) => lastSeenMap[u.id] === msg.id && u.isRead
+);
 
           return (
             <div
@@ -64,7 +66,8 @@ const MessageList: React.FC<MessageListProps> = ({ messages, currentUserId }) =>
                   {formatDate(msg.sendAt)}
                 </div>
 
-                
+               
+
                 {seenUsersForThisMsg.length > 0 && (
                   <div className="flex gap-1 mt-1">
                     {seenUsersForThisMsg.map((u) => (

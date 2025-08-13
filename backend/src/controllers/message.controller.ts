@@ -8,6 +8,7 @@ import { Conversation } from "../models/conversation.model";
 import { error } from "console";
 import { Message } from "../models/message.model";
 import { User } from "../models/user.model";
+import { UserMessages } from "../models/usermessages";
 export class MessageController {
   private _messageService: MessageService;
   constructor(private readonly messageService?: MessageService) {
@@ -70,6 +71,17 @@ export class MessageController {
         {
             model: User,
             attributes: ['id', 'userName', 'avatarUrl']
+        },
+        {
+            model: UserMessages,
+            as: 'seenBy',
+            required: false,
+            include: [
+                {
+                    model: User,
+                    attributes: ['id', 'userName', 'avatarUrl']
+                }
+            ]
         }
     ]
 });
@@ -194,8 +206,8 @@ export class MessageController {
           });
       }
       
-      const result= await this._messageService.setReadMessages(currentUserId, convId);
-      return response.status(200).json({status: "success", result});
+      this._messageService.setReadMessages(currentUserId, convId);
+      return response.status(200).json({status: "success"});
     } catch (error) {
       return response.status(400).json({ status: "failed", error: error });
     }

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css"; 
 import { useNavigate} from "react-router";
-import { loginUser } from "../services/authServices";
+import { registerUser } from "../services/authServices";
 // Validation functions
 export const validateUsername = (username: string): string => {
   const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -11,18 +11,19 @@ export const validateUsername = (username: string): string => {
 
   if (!username) return "Email hoặc số điện thoại không được để trống.";
   if (!emailRegex.test(username) && !phoneRegex.test(username))
-    return "Email hoặc số điện thoại không hợp lệ.";
+    return "Invalid email";
   return "";
 };
 
 export const validatePassword = (password: string): string => {
-  if (!password) return "Mật khẩu không được để trống.";
-  if (password.length < 6) return "Mật khẩu phải có ít nhất 6 ký tự.";
+  if (!password) return "Password not empty";
+  if (password.length < 6) return "Password length must larger than 6";
   return "";
 };
 
-const LoginPage = () => {
+const RegisterPage = () => {
   const [formData, setFormData] = useState({
+    username: "",
     email: "",
     passwordHash: "",
   });
@@ -45,28 +46,26 @@ const LoginPage = () => {
 
     if (usernameError || passwordError) {
       setErrors({ username: usernameError, password: passwordError });
-      toast.error("Vui lòng kiểm tra lại thông tin đăng nhập.");
+      toast.error("Invalid input fields. Please re-check and try again");
       return;
     }
 
     setIsLoading(true);
     try {   
-      const response = await loginUser(formData);
-      if (response.token) {
-        localStorage.setItem("accessToken", response.token);
-        localStorage.setItem("fullName", response.user.userName);
-        localStorage.setItem("userId", response.user.id.toString());
+      const response = await registerUser(formData);
+      if (response) {
+        
         setShowLoadingModal(true); 
         setTimeout(() => {
           setShowLoadingModal(false);
-          toast.success("Login Success"); 
-          navigate("/dashboard");
+          toast.success("Register User Success"); 
+          navigate("/login");
         }, 2000);
       } else {
-        toast.error("Đăng nhập thất bại: Không nhận được token.");
+        toast.error("");
       }
     } catch (error: any) {
-      toast.error(`${error.message}`);
+      toast.error(`${error.message|| error.error || error.errors}`);
     } finally {
       setIsLoading(false); // Kết thúc loading
     }
@@ -78,7 +77,7 @@ const LoginPage = () => {
         <div className="hidden md:block w-1/2 relative">
           <img
             src="https://images.unsplash.com/photo-1516321497487-e288fb19713f?ixlib=rb-4.0.3"
-            alt="Login background"
+            alt="Register background"
             className="absolute inset-0 h-full w-full object-cover"
             onError={(e) => {
               const target = e.target as HTMLImageElement;
@@ -93,21 +92,22 @@ const LoginPage = () => {
         <div className="w-full md:w-1/2 bg-white p-8 lg:p-12 animate-fadeIn">
           <div className="text-center mb-10">
             <h2 className="mt-6 text-3xl font-extrabold text-gray-900 mb-2">
-              WELCOME BACK!
+              WELCOME !
             </h2>
             <p className="text-sm text-gray-600">
-              PLEASE LOGIN INTO YOUR ACCOUNT
+             REGISTER YOUR ACCOUNT
             </p>
           </div>
 
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div className="rounded-md shadow-sm space-y-4">
               <div>
+                <div>
                 <label
                   htmlFor="username"
                   className="block text-sm font-medium text-gray-700"
                 >
-                  Email
+                  Username
                 </label>
                 <input
                   id="username"
@@ -115,7 +115,27 @@ const LoginPage = () => {
                   type="text"
                   required
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  placeholder="Nhập email hoặc số điện thoại"
+                  placeholder="Enter username"
+                  value={formData.username}
+                  onChange={(e) =>
+                    setFormData({ ...formData, username: e.target.value })
+                  }
+                />
+                
+              </div>
+                <label
+                  htmlFor="email"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Email
+                </label>
+                <input
+                  id="email"
+                  name="email"
+                  type="text"
+                  required
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  placeholder="Email"
                   value={formData.email}
                   onChange={(e) =>
                     setFormData({ ...formData, email: e.target.value })
@@ -139,7 +159,7 @@ const LoginPage = () => {
                   type="password"
                   required
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  placeholder="Nhập mật khẩu của bạn"
+                  placeholder="Password"
                   value={formData.passwordHash}
                   onChange={(e) =>
                     setFormData({ ...formData, passwordHash: e.target.value })
@@ -156,7 +176,7 @@ const LoginPage = () => {
               className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
               disabled={isLoading}
             >
-              {isLoading ? "Đang xử lý..." : "Đăng nhập"}
+              {isLoading ? "Đang xử lý..." : "Register"}
             </button>
           </form>
         </div>
@@ -179,4 +199,4 @@ const LoginPage = () => {
   );
 };
 
-export default LoginPage;
+export default RegisterPage;

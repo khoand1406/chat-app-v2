@@ -163,7 +163,11 @@ export class ConversationServices {
           },
         });
 
-        const lastUserSent = lastMessage?.user.userName||"";
+        const lastUserSent = lastMessage?.user.id | 0;
+        const lastUser= await User.findByPk(lastUserSent);
+        const lastUserName= lastUser?.userName;
+
+
         return {
           ...new ConversationResponse(
             conversation.get(),
@@ -171,7 +175,8 @@ export class ConversationServices {
             avatarUrl,
             lastMessageContent,
             timestamp,
-            lastUserSent
+            lastUserSent,
+            lastUserName
           ),
           unreadCount,
         };

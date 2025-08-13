@@ -22,7 +22,7 @@ export interface UserRole{
 export interface IRegisterUser{
     username: string
     email: string
-    password: string
+    passwordHash: string
 }
 
 export interface IRegisterResponse{

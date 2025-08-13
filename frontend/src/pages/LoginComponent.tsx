@@ -71,7 +71,9 @@ const LoginPage = () => {
       setIsLoading(false); // Kết thúc loading
     }
   };
-
+  const handleRedirect= ()=>{
+    navigate('/register');
+  }
   return (
     <div className="h-screen w-screen flex justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl w-full flex rounded-2xl shadow-2xl overflow-hidden transform transition-all duration-500 hover:scale-[1.02]">
@@ -150,7 +152,8 @@ const LoginPage = () => {
                 )}
               </div>
             </div>
-
+                
+                
             <button
               type="submit"
               className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
@@ -158,7 +161,24 @@ const LoginPage = () => {
             >
               {isLoading ? "Đang xử lý..." : "Đăng nhập"}
             </button>
+             {/* Divider */}
+            <div className="flex items-center my-4">
+              <div className="flex-grow h-px bg-gray-300"></div>
+              <span className="px-2 text-gray-500 text-sm">OR</span>
+              <div className="flex-grow h-px bg-gray-300"></div>
+            </div>
+
+            {/* Register Button */}
+            
           </form>
+          <div className="text-center">
+              <button
+                onClick={handleRedirect}
+                className="w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium text-white bg-green-500 rounded-lg hover:bg-green-600 transition"
+              >
+                Register here
+              </button>
+            </div>
         </div>
       </div>
 

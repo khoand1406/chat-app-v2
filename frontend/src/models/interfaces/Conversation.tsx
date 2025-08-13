@@ -8,7 +8,8 @@ export interface IConversationResponse {
   lastMessage?:string
   timestamp?: string
   unreadCount: number
-  lastUserSent?:string
+  lastUserSent?:number
+  lastUserName?:string
 };
 
 export interface IUserConversationCreateRequest{
