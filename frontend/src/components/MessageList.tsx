@@ -22,7 +22,8 @@ const MessageList: React.FC<MessageListProps> = ({ messages, currentUserId }) =>
   return lastSeenMap;
 };
   const lastSeenMap = getLastSeenMap(messages);
-
+  console.log(lastSeenMap);
+  
   return (
     <div className="space-y-2">
       {messages.length === 0 ? (
@@ -31,7 +32,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, currentUserId }) =>
         messages.map((msg) => {
           const isMine = msg.senderId === currentUserId;
           const seenUsersForThisMsg = msg.seenBy.filter(
-  (u) => lastSeenMap[u.id] === msg.id && u.isRead
+  (u) => lastSeenMap[u.id] === msg.id && msg.isRead
 );
 
           return (

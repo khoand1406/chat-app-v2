@@ -1,5 +1,6 @@
 import { Conversation } from './conversation.model';
 import { Message } from './message.model';
+import { Notification } from './notification.model';
 import { Role } from './role.model';
 import { Token } from './token';
 import { User } from './user.model';
@@ -15,5 +16,6 @@ export const models = [
   UserRoles,
   Message,
   UserMessages,
-  Token
+  Token, 
+  Notification
 ];

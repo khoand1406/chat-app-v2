@@ -43,7 +43,7 @@ export class MessageService{
             if (!message.id) {
                 throw new Error("Message ID not found after creation");
             }
-             const participants = await UserConversation.findAll({
+            const participants = await UserConversation.findAll({
             where: {
                 conversationId: model.conversationId,
                 userId: { [Op.ne]: model.senderId }

@@ -6,6 +6,7 @@ import { Role } from "./role.model";
 import { UserConversation } from "./userconversation.model";
 import { UserRoles } from "./userroles.model";
 import { UserMessages } from "./usermessages";
+import { Notification } from "./notification.model";
 
 @Table({ tableName: "Users", timestamps: false })
 export class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
@@ -35,6 +36,9 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
 
     @HasMany(() => Message)
     messages!: Message[];
+
+    @HasMany(()=> Notification)
+    notifications!: Notification[]
 
     @BelongsToMany(() => Conversation, () => UserConversation)
     conversations!: Conversation[];

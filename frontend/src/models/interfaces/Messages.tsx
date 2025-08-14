@@ -1,6 +1,7 @@
 export interface MessageResponse{
     id: number
     conversationId: number
+    isRead:boolean
     senderId: number
     content: string
     sendAt: Date
@@ -12,7 +13,7 @@ export interface ISeen{
     id: number,
     userName: string,
     avatarUrl:string,
-    isRead: boolean
+    
     readAt: Date,
 }
 
