@@ -1,5 +1,6 @@
 import { sequelize } from "../database/config";
 import { NotificationCreateRequest, NotificationCreateResponse, NotificationResponses } from "../interfaces/notification.interface";
+import { Conversation } from "../models/conversation.model";
 import { Notification } from "../models/notification.model";
 import { User } from "../models/user.model";
 
@@ -70,5 +71,29 @@ export class NotificationServices{
         }
     }
 
-    async getUserNotification()
+    async getUserNotifications(userId: number):Promise<NotificationResponses>{
+        try{
+            const result= await Notification.findAll({where: {userId: userId}});
+            return {
+                isSuccess: true,
+                message: `Successfully get ${result.length} records of Notification`,
+                notification: result
+            }
+        }catch(error){
+            throw new Error("Error in getting data: "+ error)
+        }
+    }
+
+    async markAllAsRead(userId: number):Promise<void>{
+        const transaction= await sequelize.transaction()
+        try {
+            await Notification.update({isRead: true}, {where: {userId: userId}, transaction});
+            await transaction.commit();
+
+        } catch (error) {
+            transaction.rollback();
+            console.log("Error when update read status of user: "+ error);
+            throw error
+        }
+    }
 }
