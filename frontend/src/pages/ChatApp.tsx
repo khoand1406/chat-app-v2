@@ -186,8 +186,6 @@ const ChatApp = () => {
       conversationId: number;
       userId: number;
     }) => {
-      // Nếu là mình đọc thì set unreadCount = 0 cho chính mình
-      // Hoặc nếu là người khác đọc, thì mình có thể update nếu muốn hiển thị ai đã đọc
       setConversationsList((prev) =>
         prev.map((conv) =>
           conv.id === conversationId
@@ -198,6 +196,7 @@ const ChatApp = () => {
             : conv
         )
       );
+      
     };
 
     socket.on("messagesRead", handleMessageRead);

@@ -19,3 +19,7 @@ export const GETCONV= '/api/conversations/'
 export const MESSAGES_PATH = (conversationId: number) => `/api/messages/${conversationId}/messages`;
 export const MESSAGE_SEND= '/api/messages/send'
 export const MESSAGE_READ= '/api/messages/read'
+
+export const NOTIFICATION=  '/api/notifications'
+export const READ_NOTIFICATION= (notiId:number)=> `/api/notifications/${notiId}/read`
+export const READ_ALL= '/api/notifications/read-all'

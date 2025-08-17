@@ -9,10 +9,14 @@ import { error } from "console";
 import { Message } from "../models/message.model";
 import { User } from "../models/user.model";
 import { UserMessages } from "../models/usermessages";
+import { NotificationServices } from "../services/notification.services";
+import { NotificationCreateRequest } from "../interfaces/notification.interface";
 export class MessageController {
   private _messageService: MessageService;
-  constructor(private readonly messageService?: MessageService) {
+  private _notificationService: NotificationServices
+  constructor(private readonly messageService?: MessageService, private readonly notificationService?: NotificationServices) {
     this._messageService = messageService ?? new MessageService();
+    this._notificationService= notificationService ?? new NotificationServices();
   }
 
   sendMessage = async (request: Request, response: Response) => {
@@ -97,6 +101,9 @@ export class MessageController {
         allMemberIds.forEach((uid) =>
           io.to(`user_${uid}`).emit("messageSent", fullMessage)
         );
+        await this._notificationService.sendUsersNotification(allMemberIds, {title: "New message",
+    content: `${fullMessage?.user.userName}: ${fullMessage?.content}`,
+    userId: userId, createdAt: new Date(),})
       } else {
         const members= await UserConversation.findAll({where: {conversationId: conversation?.id},
         attributes: ['userId']});
@@ -104,6 +111,9 @@ export class MessageController {
         allMemberIds.forEach(element => {
             io.to(`user_${element}`).emit("messageSent", fullMessage);
         });
+        await this._notificationService.sendUsersNotification(allMemberIds, {title: "New message",
+    content: `${fullMessage?.user.userName}: ${fullMessage?.content}`,
+    userId: 0, createdAt: new Date()})
       }
       
       return response.status(201).json(fullMessage);
