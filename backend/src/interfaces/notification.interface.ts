@@ -37,5 +37,5 @@ export class NotificationResponses{
     isSuccess!: boolean
     message!: string
     notification!: Notification[]
-
+    unread!: number
 }

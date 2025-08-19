@@ -67,6 +67,7 @@ export class MessageController {
           });
       }
       const conversation = await Conversation.findByPk(data.conversationId);
+      const user= await User.findByPk(userId);
       const messageDto = new CreateMessageRequest(data, userId);
 
       const result = await this._messageService.sendMessage(messageDto);
@@ -104,6 +105,18 @@ export class MessageController {
         await this._notificationService.sendUsersNotification(allMemberIds, {title: "New message",
     content: `${fullMessage?.user.userName}: ${fullMessage?.content}`,
     userId: userId, createdAt: new Date(),})
+    
+        for (const uid of allMemberIds){
+          if(uid===userId) continue;
+          io.to(`user_${uid}`).emit("newNotification", {
+            title: "New Message",
+            content: `${user?.userName} has sent messages to ${conversation.name}`,
+            conversationId: conversation.id,
+            senderId:userId,
+            createdAt: new Date()
+          })
+        }
+
       } else {
         const members= await UserConversation.findAll({where: {conversationId: conversation?.id},
         attributes: ['userId']});
@@ -114,6 +127,16 @@ export class MessageController {
         await this._notificationService.sendUsersNotification(allMemberIds, {title: "New message",
     content: `${fullMessage?.user.userName}: ${fullMessage?.content}`,
     userId: 0, createdAt: new Date()})
+        for (const uid of allMemberIds){
+          if(uid===userId) continue;
+          io.to(`user_${uid}`).emit("newNotification", {
+            title: "New Message",
+            content: `${user?.userName} has sent messages to ${conversation?.name}`,
+            conversationId: conversation?.id,
+            senderId:userId,
+            createdAt: new Date()
+          })
+        }
       }
       
       return response.status(201).json(fullMessage);

@@ -2,6 +2,7 @@ export interface NotificationResponse{
     isSuccess:boolean
     message: string
     notification: Notification[]
+    unread: number
 }
 
 export interface Response{

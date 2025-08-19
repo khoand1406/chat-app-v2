@@ -3,14 +3,14 @@ import type { NotificationResponse } from "../models/interfaces/Notification";
 import ApiHelper from "../utils/ApiHelper";
 
 
-export const getNotification= async (): Promise<NotificationResponse[]> => {
+export const getNotification= async (): Promise<NotificationResponse> => {
     try {
         const apiHelper= new ApiHelper();
         const response= await apiHelper.get(NOTIFICATION);
-        if(!Array.isArray(response)){
+        if(!response){
             throw new Error("Invalid response format");
         }
-        return response as NotificationResponse[];
+        return response as NotificationResponse;
     } catch (error) {
         console.log(error);
         throw new Error("Error when fetch notification:" + error);

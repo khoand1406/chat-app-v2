@@ -1,61 +1,20 @@
-import { useState } from "react";
 import {
   IoNotifications,
   IoSettingsSharp,
   IoCheckmarkCircle,
 } from "react-icons/io5";
+import type { Notification } from "../models/interfaces/Notification";
+import { formatDate } from "../utils/FormatDate";
 
 interface NotificationProps {
   isOpen: boolean;
+  notifications: Notification[]
+  unread: number
+
 }
 
-const NotificationPanel: React.FC<NotificationProps> = ({ isOpen }) => {
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      sender: "Alex Thompson",
-      avatar:
-        "https://images.unsplash.com/photo-1633332755192-727a05c4013d",
-      message: "Shared a document: Q4 Marketing Strategy",
-      timestamp: "10:30 AM",
-      isUnread: true,
-    },
-    {
-      id: 2,
-      sender: "Sarah Wilson",
-      avatar:
-        "https://images.unsplash.com/photo-1494790108377-be9c29b29330",
-      message: "Mentioned you in Design Team channel",
-      timestamp: "9:45 AM",
-      isUnread: true,
-    },
-    {
-      id: 3,
-      sender: "Mike Chen",
-      avatar:
-        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d",
-      message: "Scheduled a meeting for tomorrow",
-      timestamp: "Yesterday",
-      isUnread: false,
-    },
-    {
-      id: 4,
-      sender: "Emily Davis",
-      avatar:
-        "https://images.unsplash.com/photo-1534528741775-53994a69daeb",
-      message: "Reacted to your message with 👍",
-      timestamp: "Yesterday",
-      isUnread: false,
-    },
-  ]);
-
-  const markAsRead = (id: number) => {
-    setNotifications((prev) =>
-      prev.map((n) =>
-        n.id === id ? { ...n, isUnread: false } : n
-      )
-    );
-  };
+const NotificationPanel: React.FC<NotificationProps> = ({ isOpen, notifications }) => {
+  
 
   if (!isOpen) return null; // Nếu đóng panel thì không render
 
@@ -79,32 +38,28 @@ const NotificationPanel: React.FC<NotificationProps> = ({ isOpen }) => {
             <div
               key={notification.id}
               className={`flex items-start p-4 hover:bg-gray-50 cursor-pointer transition-all relative ${
-                notification.isUnread ? "bg-gray-50" : "bg-white"
+                notification.isRead ? "bg-gray-50" : "bg-white"
               }`}
-              onClick={() => markAsRead(notification.id)}
+              // onClick={() => markAsRead(notification.id)}
             >
-              {notification.isUnread && (
+              {notification.isRead && (
                 <div className="absolute left-0 top-0 w-1 h-full bg-[#6264A7] rounded-l-lg" />
               )}
-              <img
-                src={notification.avatar}
-                alt={notification.sender}
-                className="w-10 h-10 rounded-full object-cover"
-              />
+              
               <div className="ml-3 flex-1">
                 <div className="flex items-start justify-between">
                   <h3 className="font-semibold text-gray-900">
-                    {notification.sender}
+                    {notification.title}
                   </h3>
                   <span className="text-xs text-gray-500">
-                    {notification.timestamp}
+                    {formatDate(notification.createdAt)}
                   </span>
                 </div>
                 <p className="text-sm text-gray-600 mt-1">
-                  {notification.message}
+                  {notification.content}
                 </p>
               </div>
-              {!notification.isUnread && (
+              {!notification.isRead && (
                 <IoCheckmarkCircle className="text-gray-400 ml-2 mt-1" />
               )}
             </div>

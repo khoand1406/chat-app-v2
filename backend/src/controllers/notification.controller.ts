@@ -1,4 +1,5 @@
 import { Conversation } from "../models/conversation.model";
+import { Notification } from "../models/notification.model";
 import { Token } from "../models/token";
 import { User } from "../models/user.model";
 import { UserConversation } from "../models/userconversation.model";
@@ -78,7 +79,9 @@ export class NotificationController{
     }
 
     readNotification= async(request: Request, response: Response)=>{
+        const io= request.app.get("io");
         try {
+            
             const token= request.headers.authorization?.split(" ")[1];
             if(!token){
                 return response.status(401).json({status: "failed", message: "Not Authenticated"});
@@ -95,7 +98,10 @@ export class NotificationController{
             }
             const notificationId= request.params.id;
             if(isNaN(parseInt(notificationId))) return response.status(400).json({status: "failed", message: "Wrong format"})
+            const notification= await Notification.findByPk(notificationId);
+            if(!notification) return response.status(404).json({status: "failed", message: "Not found"});
             await this._NotificationService.readNotification(parseInt(notificationId));
+            
             return response.status(200).json({status: "success", message: "update read status successfully"});
 
         } catch (error) {
@@ -105,6 +111,7 @@ export class NotificationController{
     }
 
     markAsreadAll= async (request:Request, response: Response)=> {
+        const io= request.app.get("io");
         try {
             const token= request.headers.authorization?.split(" ")[1];
             if(!token){
@@ -121,6 +128,10 @@ export class NotificationController{
                 return response.status(401).json({status: "failed", message: "Not found user with token. Login again"});
             }
             await this._NotificationService.markAllAsRead(userId);
+            io.to(`user_${userId}`).emit("notificationsReadAll", {
+            userId,
+            readAt: new Date(),
+        });
             return response.status(200).json({status: "success", message: "update read status successfully"});
         } catch (error) {
             console.log(error);

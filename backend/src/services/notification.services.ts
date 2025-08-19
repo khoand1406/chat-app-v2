@@ -1,8 +1,6 @@
 import { sequelize } from "../database/config";
 import { NotificationCreateRequest, NotificationCreateResponse, NotificationResponses } from "../interfaces/notification.interface";
-import { Conversation } from "../models/conversation.model";
 import { Notification } from "../models/notification.model";
-import { User } from "../models/user.model";
 
 export class NotificationServices{
     async createNotification(model: NotificationCreateRequest):Promise<NotificationCreateResponse>{
@@ -61,7 +59,8 @@ export class NotificationServices{
             return {
                 isSuccess: true,
                 message: `Successfully created ${result.length} number of records`,
-                notification: result
+                notification: result,
+                unread: result.length
             }
 
         } catch (error) {
@@ -73,11 +72,15 @@ export class NotificationServices{
 
     async getUserNotifications(userId: number):Promise<NotificationResponses>{
         try{
-            const result= await Notification.findAll({where: {userId: userId}});
+            const result= await Notification.findAll({where: {userId: userId}, order: [['createdAt', 'DESC']]});
+            const unreadCount = await Notification.count({
+      where: { userId: userId, isRead: false }, // đếm chưa đọc
+    });
             return {
                 isSuccess: true,
                 message: `Successfully get ${result.length} records of Notification`,
-                notification: result
+                notification: result,
+                unread: unreadCount
             }
         }catch(error){
             throw new Error("Error in getting data: "+ error)
