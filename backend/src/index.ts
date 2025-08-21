@@ -8,6 +8,7 @@ import conversationRoutes from './routes/conversation.route';
 import messageRoutes from './routes/messages.route';
 import notificationRoutes from './routes/notification.route';
 import userRoutes from './routes/users.route';
+import eventRoutes from './routes/events.route';
 
 const app= express();
 const PORT= process.env.PORT;
@@ -19,12 +20,13 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/events', eventRoutes);
 
 const httpServer= createServer(app);
 const io = new Server(httpServer, {
   cors: {
     origin: "*", 
-    methods: ["GET", "POST"]
+    methods: ["GET", "POST", "PUT", "DELETE"]
   }
 });
 

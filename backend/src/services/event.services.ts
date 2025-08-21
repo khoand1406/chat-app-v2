@@ -1,3 +1,4 @@
+import { Op } from "sequelize";
 import { sequelize } from "../database/config";
 import { CreateAttendenceRequest } from "../dtos/attendence.dto";
 import {
@@ -5,11 +6,12 @@ import {
   CreateEventResponse,
   EventDetailResponse,
   EventResponse,
-} from "../dtos/create-event.dto";
+  IUser,
+} from "../dtos/events/create-event.dto";
 import { Attendance } from "../models/attendence.model";
 import { Events } from "../models/event.model";
-import { Op, where } from "sequelize";
 import { User } from "../models/user.model";
+import { UpdateEventRequest } from "../dtos/events/update-event.dto";
 
 export class EventServices {
   createEvents = async (
@@ -34,7 +36,7 @@ export class EventServices {
       participantIds = [...new Set([...participantIds, currentUserId])]
         .map((item) => Number(item))
         .sort();
-
+      
       const createPayload = {
         content: model.content,
         description: model.description,
@@ -160,11 +162,14 @@ export class EventServices {
           },
         ],
       });
-      if(!event){
-        throw new Error("Not found event with id: "+ id);
+      if (!event) {
+        throw new Error("Not found event with id: " + id);
       }
       const unConfirm = await Attendance.findAll({
-        where: { eventId: id, [Op.or]: [{status: "pending"}, {status: "declined"}] },
+        where: {
+          eventId: id,
+          [Op.or]: [{ status: "pending" }, { status: "declined" }],
+        },
         include: [
           {
             model: User,
@@ -180,10 +185,84 @@ export class EventServices {
         email: item.user.email,
       }));
 
-      return new EventDetailResponse(event , unConfirmUser);
+      return new EventDetailResponse(event, unConfirmUser);
     } catch (error) {
       console.log(error);
-      throw new Error("An error occurs when get event details: "+ error);
+      throw new Error("An error occurs when get event details: " + error);
     }
   };
+  updateEvents = async (
+  id: number,
+  model: UpdateEventRequest,
+  currentUserId: number
+): Promise<EventDetailResponse> => {
+  const transaction = await sequelize.transaction();
+  try {
+    const event = await Events.findByPk(id, { transaction });
+   
+    if (!event) throw new Error("Event not found");
+   const unConfirmedUsers: IUser[] = event.attendances
+  ?.filter(a => a.status === "pending")
+  .map(a => ({
+    id: a.user.id,
+    username: a.user.userName,
+    email: a.user.email
+  })) || [];
+    
+    await event.update(
+      {
+        title: model.title,
+        content: model.content,
+        description: model.description,
+        startDate: model.startDate,
+        endDate: model.endDate,
+      },
+      { transaction }
+    );
+
+    
+    let participantIds = Array.isArray(model.participantIds)
+      ? model.participantIds
+      : [];
+
+    participantIds = [...new Set([...participantIds, currentUserId])];
+
+    const existingAttendances = await Attendance.findAll({
+      where: { eventId: id },
+      transaction,
+    });
+    const existingUserIds = existingAttendances.map((a) => a.userId);
+
+    const newUserIds = participantIds.filter((uid) => !existingUserIds.includes(uid));
+
+    const removedUserIds = existingUserIds.filter(
+      (uid) => !participantIds.includes(uid)
+    );
+
+    if (newUserIds.length > 0) {
+      const newAttendances = newUserIds.map(
+        (uid) =>
+          new CreateAttendenceRequest({
+            eventId: id,
+            userId: uid,
+            status: "pending",
+          })
+      );
+      await Attendance.bulkCreate(newAttendances, { transaction });
+    }
+
+    if (removedUserIds.length > 0) {
+      await Attendance.destroy({
+        where: { eventId: id, userId: removedUserIds },
+        transaction,
+      });
+    }
+
+    await transaction.commit();
+    return new EventDetailResponse(event, unConfirmedUsers)
+  } catch (error) {
+    await transaction.rollback();
+    throw new Error("Failed to update event: " + error);
+  }
+};
 }
