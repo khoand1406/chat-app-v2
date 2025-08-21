@@ -3,6 +3,7 @@ import './App.css';
 import LoginPage from './pages/LoginComponent';
 import ChatApp from './pages/ChatApp';
 import RegisterPage from './pages/RegisterPage';
+import CreateEventPage from './pages/EventPage';
 
 
 const App = () => {
@@ -14,6 +15,7 @@ const App = () => {
           <Route path="/login" element={<LoginPage />} />
           <Route path='/dashboard' element= {<ChatApp />} />
           <Route path= '/register'element= {<RegisterPage />} />
+          <Route path= '/events' element= {<CreateEventPage></CreateEventPage>}  />
         </Routes>
       </div>
     </BrowserRouter>

@@ -3,15 +3,13 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { toast, ToastContainer } from "react-toastify";
 import ChatWindow from "../components/ChatWindow";
-import NavBar from "../components/NavBar";
 import Sidebar from "../components/Sidebar";
 import type { IConversationResponse } from "../models/interfaces/Conversation";
 import type { MessageResponse } from "../models/interfaces/Messages";
 import { getConversations } from "../services/conversationServices";
 import { getMessages, setReadMessages } from "../services/messageServices";
 import { socket } from "../socket/config";
-import { getNotification, readAllNotification } from "../services/notificationServices";
-import type { Notification } from "../models/interfaces/Notification";
+import Layout from "../layout/Layout";
 
 const ChatApp = () => {
   const [selectedConversationId, setSelectedConversationId] =
@@ -22,9 +20,7 @@ const ChatApp = () => {
   >([]);
   const [messages, setMessages] = useState<MessageResponse[]>([]);
   const [isChatWindowActive, setIsChatWindowActive] = useState(true);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [isOpen, setIsOpen]= useState(false);
-  const [unreadCount, setUnreadCount]= useState(0);
+  
   const userId = localStorage.getItem("userId");
 
   useEffect(() => {
@@ -211,72 +207,19 @@ const ChatApp = () => {
     };
   }, []);
 
-   useEffect(()=> {
-    const fetchNotification= async ()=> {
-      try {
-        const response= await getNotification();
-        if(!response){
-          toast.error("Fail to get notification data", {pauseOnHover: false});
-        }
-        const notificationList= response.notification;
-        const unreadCount= response.unread
-        setNotifications(notificationList);
-        setUnreadCount(unreadCount);
-      } catch (error) {
-        toast.error("Failed to get notification data");
-        console.log(error);
-      }
-    }
-
-    fetchNotification();
-  }, [isOpen])
-
-  useEffect(()=> {
-    if(!socket) return;
-    const handleNewNotification= (noti: Notification)=> {
-      setNotifications((prev)=> [noti, ...prev]);
-      setUnreadCount((prev)=> prev+1);
-      toast.info("You have a new notification!", { pauseOnHover: false });
-    }
-    socket.on('newNotification', handleNewNotification)
-    return () => {
-      socket.off("newNotification", handleNewNotification);
-    };
-  }, [socket])
-
-  const handleMarkAllRead = async () => {
-  try {
-    await readAllNotification();
-    setUnreadCount(0); 
-    setNotifications((prev) =>
-      prev.map((n) => ({ ...n, read: true }))
-    );
-  } catch (err) {
-    toast.error("Failed to mark notifications as read");
-    console.error(err);
-  }
-};
+   
 
   return (
-    <>
-      <NavBar onClose={() => setIsOpen(false)} 
-  onOpen={() => {
-    setIsOpen(true);
-    handleMarkAllRead(); // 🔔 mark all read khi mở
-  }}
-   notificationList= {notifications}
-   unreadCount= {unreadCount}
-    />
-
-      <Sidebar
+    <Layout>
+      <div className="flex h-screen min-h-0 flex-1">
+        <Sidebar
         conversations={conversationsList}
         selectedId={selectedConversationId}
         onSelect={(id) => handleSelectConversation(id)}
         isMobileOpen={sidebarOpen}
         currentUserId={parseInt(userId ? userId : "")}
       />
-
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-h-0">
         <ChatWindow
           conversationId={selectedConversationId}
           messages={messages}
@@ -292,7 +235,10 @@ const ChatApp = () => {
         />
         <ToastContainer position="top-right" autoClose={3000} />
       </div>
-    </>
+      </div>
+      
+      
+    </Layout>
   );
 };
 

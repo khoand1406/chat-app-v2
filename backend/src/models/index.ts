@@ -1,4 +1,6 @@
+import { Attendance } from './attendence.model';
 import { Conversation } from './conversation.model';
+import { Events } from './event.model';
 import { Message } from './message.model';
 import { Notification } from './notification.model';
 import { Role } from './role.model';
@@ -17,5 +19,7 @@ export const models = [
   Message,
   UserMessages,
   Token, 
-  Notification
+  Notification,
+  Events,
+  Attendance
 ];

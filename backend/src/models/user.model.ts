@@ -7,6 +7,7 @@ import { UserConversation } from "./userconversation.model";
 import { UserRoles } from "./userroles.model";
 import { UserMessages } from "./usermessages";
 import { Notification } from "./notification.model";
+import { Attendance } from "./attendence.model";
 
 @Table({ tableName: "Users", timestamps: false })
 export class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
@@ -48,4 +49,7 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
 
     @HasMany(() => UserConversation)
     userconversations!: UserConversation[];
+
+    @HasMany(()=> Attendance)
+    attendences!: Attendance[]
 }
