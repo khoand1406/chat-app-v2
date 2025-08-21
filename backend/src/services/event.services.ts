@@ -3,11 +3,13 @@ import { CreateAttendenceRequest } from "../dtos/attendence.dto";
 import {
   CreateEventRequest,
   CreateEventResponse,
+  EventDetailResponse,
   EventResponse,
 } from "../dtos/create-event.dto";
 import { Attendance } from "../models/attendence.model";
 import { Events } from "../models/event.model";
-import { Op } from "sequelize";
+import { Op, where } from "sequelize";
+import { User } from "../models/user.model";
 
 export class EventServices {
   createEvents = async (
@@ -97,23 +99,91 @@ export class EventServices {
     date: Date
   ): Promise<EventResponse[]> => {
     try {
+      const startOfDay = new Date(date);
+      const endOfDay = new Date(date);
+      startOfDay.setHours(0, 0, 0, 0);
+      endOfDay.setHours(23, 59, 59, 99);
+
       const events = await Events.findAll({
+        where: {
+          [Op.or]: [
+            {
+              startDate: { [Op.between]: [startOfDay, endOfDay] },
+            },
+            {
+              endDate: { [Op.between]: [startOfDay, endOfDay] },
+            },
+            {
+              startDate: { [Op.lte]: startOfDay },
+              endDate: { [Op.gte]: endOfDay },
+            },
+          ],
+        },
         include: [
           {
             model: Attendance,
             where: { userId: userId },
             required: true,
+            include: [
+              {
+                model: User,
+                attributes: ["id", "username", "email"],
+              },
+            ],
           },
         ],
-        where: {
-          
-        },
         order: [["startDate", "ASC"]],
       });
 
       return events.map((e) => new EventResponse(e));
     } catch (error) {
       throw new Error("An error occurred while fetching events: " + error);
+    }
+  };
+
+  getEventDetails = async (id: number): Promise<EventDetailResponse> => {
+    try {
+      const event = await Events.findByPk(id, {
+        include: [
+          {
+            model: Attendance,
+            as: "attendances",
+            required: true,
+            include: [
+              {
+                model: User,
+                as: "user",
+                attributes: ["id", "username", "email"],
+                where: { status: "confirmed" },
+              },
+            ],
+          },
+        ],
+      });
+      if(!event){
+        throw new Error("Not found event with id: "+ id);
+      }
+      const unConfirm = await Attendance.findAll({
+        where: { eventId: id, [Op.or]: [{status: "pending"}, {status: "declined"}] },
+        include: [
+          {
+            model: User,
+            as: "user",
+            attributes: ["id", "username", "email"],
+          },
+        ],
+      });
+
+      const unConfirmUser = unConfirm.map((item) => ({
+        id: item.user.id,
+        username: item.user.userName,
+        email: item.user.email,
+      }));
+
+      return new EventDetailResponse(event , unConfirmUser);
+    } catch (error) {
+      console.log(error);
+      throw new Error("An error occurs when get event details: "+ error);
     }
   };
 }

@@ -12,18 +12,7 @@ export class NotificationController{
     }
     getNotification= async(request:Request, response:Response)=> {
         try {
-            const token= request.headers.authorization?.split(" ")[1];
-            if(!token){
-                return response.status(401).json({status: "failed", message: "Not Authenticated"});
-            }
-            const foundToken= await Token.findOne({where: {token: token}});
-            if(!foundToken){
-                return response.status(401).json({status: "failed", message: "Not Found Token"});
-            }
-            const userId= foundToken.userId;
-            if(!token){
-                return response.status(401).json({status: "failed", message: "Not found user with token. Login again"});
-            }
+            const userId= (request as any).userId;
             const result= await this._NotificationService.getUserNotifications(userId);
             return response.status(200).json(result);
         } catch (error) {
@@ -34,15 +23,7 @@ export class NotificationController{
 
     sendNotification= async(request: Request, response: Response)=> {
         try {
-            const token= request.headers.authorization?.split(" ")[1];
-            if(!token){
-                return response.status(401).json({status: "failed", message: "Not Authenticated"});
-            }
-            const foundToken= await Token.findOne({where: {token: token}});
-            if(!foundToken){
-                return response.status(401).json({status: "failed", message: "Not Found Token"});
-            }
-            const userId= foundToken.userId;
+            const userId= (request as any).userId;
             const user= await User.findByPk(userId)
             if(!user){
                 return response.status(401).json({status: "failed", message: "Not found user with token. Login again"});
@@ -82,15 +63,7 @@ export class NotificationController{
         const io= request.app.get("io");
         try {
             
-            const token= request.headers.authorization?.split(" ")[1];
-            if(!token){
-                return response.status(401).json({status: "failed", message: "Not Authenticated"});
-            }
-            const foundToken= await Token.findOne({where: {token: token}});
-            if(!foundToken){
-                return response.status(401).json({status: "failed", message: "Not Found Token"});
-            }
-            const userId= foundToken.userId;
+            const userId= (request as any).userId;
             const user= User.findByPk(userId);
 
             if(!user){
@@ -113,15 +86,7 @@ export class NotificationController{
     markAsreadAll= async (request:Request, response: Response)=> {
         const io= request.app.get("io");
         try {
-            const token= request.headers.authorization?.split(" ")[1];
-            if(!token){
-                return response.status(401).json({status: "failed", message: "Not Authenticated"});
-            }
-            const foundToken= await Token.findOne({where: {token: token}});
-            if(!foundToken){
-                return response.status(401).json({status: "failed", message: "Not Found Token"});
-            }
-            const userId= foundToken.userId;
+            const userId= (request as any).userId;
             const user= User.findByPk(userId);
 
             if(!user){

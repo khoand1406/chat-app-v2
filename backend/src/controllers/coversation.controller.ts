@@ -18,22 +18,7 @@ export class ConversationController {
 
   getConversations = async (request: Request, response: Response) => {
     try {
-      const token = request.headers.authorization?.split(" ")[1];
-      const now= new Date();
-      if (!token) {
-        return response.status(401).json({ Error: "Unauthorized" });
-      }
-      const tokenFind = await Token.findOne({ where: { token: token } });
-      if (!tokenFind) {
-        return response.status(401).json({ Error: "Invalid token" });
-      }
-      if(tokenFind.expiresAt && tokenFind.expiresAt> now) {
-        return response.status(401).json({ Error: "Token expired" });
-      }
-      if (tokenFind.userId == null) {
-        return response.status(401).json({ Error: "UserId not found" });
-      }
-      const userid = tokenFind.userId;
+      const userid = (request as any).userId;
       if (!userid ) {
         return response.status(401).json({ Error: "Invalid UserId" });
       }
@@ -46,24 +31,8 @@ export class ConversationController {
 
   createGroupConversation = async (request: Request, response: Response) => {
     try {
-      const token = request.headers.authorization?.split(" ")[1];
-      if (!token) {
-        return response.status(401).json({ Error: "Unauthorized" });
-      }
-      const tokenFind = await Token.findOne({ where: { token: token } });
-      if (!tokenFind) {
-        return response.status(401).json({ Error: "Invalid token" });
-      }
-      if (tokenFind.userId == null) {
-        return response.status(401).json({ Error: "UserId not found" });
-      }
-      const userId = tokenFind.userId;
-      if (!userId || isNaN(userId)) {
-        return response.status(400).json({ Error: "Invalid user ID" });
-      }
-      if (tokenFind.expiresAt && tokenFind.expiresAt < new Date()) {
-        return response.status(401).json({ Error: "Token expired" });
-      }
+      const userId = (request as any).userId;
+      
       const data = request.body;
       if (data === null || data.length === 0) {
         return response.status(400).json({ Error: "Data not found" });
@@ -93,18 +62,7 @@ export class ConversationController {
 
   createUserConversation = async (request: Request, response: Response) => {
     try {
-      const token = request.headers.authorization?.split(" ")[1];
-      if (!token) {
-        return response.status(401).json({ Error: "Unauthorized" });
-      }
-      const tokenFind = await Token.findOne({ where: { token: token } });
-      if (!tokenFind) {
-        return response.status(401).json({ Error: "Invalid token" });
-      }
-      if (tokenFind.userId == null) {
-        return response.status(401).json({ Error: "UserId not found" });
-      }
-      
+      const userId = (request as any).userId;
       const data = request.body;
       if (data === null) {
         return response.status(400).json({ Error: "Data not found" });
@@ -115,10 +73,6 @@ export class ConversationController {
           .json({ Error: "Participant IDs not found" });
       }
       
-      const userId = tokenFind.userId;
-      if (!userId || isNaN(userId)) {
-        return response.status(400).json({ Error: "Invalid user ID" });
-      }
       const userReceiver= await User.findOne({where: {id: data.participantId}});
       if (!userReceiver) {
         return response.status(400).json({ Error: "Receiver not found" });

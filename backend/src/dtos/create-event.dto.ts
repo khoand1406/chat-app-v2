@@ -32,3 +32,26 @@ export class EventResponse{
         this.endDate= data.endDate
     }
 }
+
+export class EventDetailResponse{
+    id!: number
+    content!: string
+    description!: string
+    startDate!:Date
+    endDate!: Date
+    unConfirmed!: IUser[]
+    constructor(event: EventResponse, unConfirm: IUser[] = [] ){
+        this.id= event.id,
+        this.content= event.content
+        this.description= event.description
+        this.startDate= event.startDate
+        this.endDate= event.endDate
+        this.unConfirmed= unConfirm
+    }
+}
+
+export interface IUser{
+    id: number
+    username: string
+    email: string
+}

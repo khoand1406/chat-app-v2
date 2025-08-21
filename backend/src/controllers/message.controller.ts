@@ -13,33 +13,19 @@ import { NotificationServices } from "../services/notification.services";
 import { NotificationCreateRequest } from "../interfaces/notification.interface";
 export class MessageController {
   private _messageService: MessageService;
-  private _notificationService: NotificationServices
-  constructor(private readonly messageService?: MessageService, private readonly notificationService?: NotificationServices) {
+  private _notificationService: NotificationServices;
+  constructor(
+    private readonly messageService?: MessageService,
+    private readonly notificationService?: NotificationServices
+  ) {
     this._messageService = messageService ?? new MessageService();
-    this._notificationService= notificationService ?? new NotificationServices();
+    this._notificationService =
+      notificationService ?? new NotificationServices();
   }
 
   sendMessage = async (request: Request, response: Response) => {
     try {
-      const token = request.headers.authorization?.split(" ")[1];
-      if (!token) {
-        return response
-          .status(401)
-          .json({ status: "failed", error: "Unauthorized" });
-      }
-      const tokenFind = await Token.findOne({ where: { token: token } });
-      if (!tokenFind) {
-        return response
-          .status(401)
-          .json({ status: "failed", error: "Invalid token" });
-      }
-
-      const userId = tokenFind.userId;
-      if (!userId || isNaN(userId)) {
-        return response
-          .status(400)
-          .json({ status: "failed", error: "Invalid user ID" });
-      }
+      const userId = (request as any).userId;
 
       const data = request.body;
       if (!data || Object.keys(data).length === 0) {
@@ -59,37 +45,35 @@ export class MessageController {
         },
       });
       if (!userConversation) {
-        return response
-          .status(403)
-          .json({
-            status: "failed",
-            error: "User is not a participant in this conversation",
-          });
+        return response.status(403).json({
+          status: "failed",
+          error: "User is not a participant in this conversation",
+        });
       }
       const conversation = await Conversation.findByPk(data.conversationId);
-      const user= await User.findByPk(userId);
+      const user = await User.findByPk(userId);
       const messageDto = new CreateMessageRequest(data, userId);
 
       const result = await this._messageService.sendMessage(messageDto);
       const fullMessage = await Message.findByPk(result.id, {
-    include: [
-        {
+        include: [
+          {
             model: User,
-            attributes: ['id', 'userName', 'avatarUrl']
-        },
-        {
+            attributes: ["id", "userName", "avatarUrl"],
+          },
+          {
             model: UserMessages,
-            as: 'seenBy',
+            as: "seenBy",
             required: false,
             include: [
-                {
-                    model: User,
-                    attributes: ['id', 'userName', 'avatarUrl']
-                }
-            ]
-        }
-    ]
-});
+              {
+                model: User,
+                attributes: ["id", "userName", "avatarUrl"],
+              },
+            ],
+          },
+        ],
+      });
 
       const io = request.app.get("io");
 
@@ -102,43 +86,51 @@ export class MessageController {
         allMemberIds.forEach((uid) =>
           io.to(`user_${uid}`).emit("messageSent", fullMessage)
         );
-        await this._notificationService.sendUsersNotification(allMemberIds, {title: "New message",
-    content: `${fullMessage?.user.userName}: ${fullMessage?.content}`,
-    userId: userId, createdAt: new Date(),})
-    
-        for (const uid of allMemberIds){
-          if(uid===userId) continue;
+
+        await this._notificationService.sendUsersNotification(allMemberIds, {
+          title: "New message",
+          content: `${fullMessage?.user.userName}: ${fullMessage?.content}`,
+          userId: userId,
+          createdAt: new Date(),
+        });
+
+        for (const uid of allMemberIds) {
+          if (uid === userId) continue;
           io.to(`user_${uid}`).emit("newNotification", {
             title: "New Message",
             content: `${user?.userName} has sent messages to ${conversation.name}`,
             conversationId: conversation.id,
-            senderId:userId,
-            createdAt: new Date()
-          })
+            senderId: userId,
+            createdAt: new Date(),
+          });
         }
-
       } else {
-        const members= await UserConversation.findAll({where: {conversationId: conversation?.id},
-        attributes: ['userId']});
-        const allMemberIds= members.map(item=> item.userId);
-        allMemberIds.forEach(element => {
-            io.to(`user_${element}`).emit("messageSent", fullMessage);
+        const members = await UserConversation.findAll({
+          where: { conversationId: conversation?.id },
+          attributes: ["userId"],
         });
-        await this._notificationService.sendUsersNotification(allMemberIds, {title: "New message",
-    content: `${fullMessage?.user.userName}: ${fullMessage?.content}`,
-    userId: 0, createdAt: new Date()})
-        for (const uid of allMemberIds){
-          if(uid===userId) continue;
+        const allMemberIds = members.map((item) => item.userId);
+        allMemberIds.forEach((element) => {
+          io.to(`user_${element}`).emit("messageSent", fullMessage);
+        });
+        await this._notificationService.sendUsersNotification(allMemberIds, {
+          title: "New message",
+          content: `${fullMessage?.user.userName}: ${fullMessage?.content}`,
+          userId: 0,
+          createdAt: new Date(),
+        });
+        for (const uid of allMemberIds) {
+          if (uid === userId) continue;
           io.to(`user_${uid}`).emit("newNotification", {
             title: "New Message",
             content: `${user?.userName} has sent messages to ${conversation?.name}`,
             conversationId: conversation?.id,
-            senderId:userId,
-            createdAt: new Date()
-          })
+            senderId: userId,
+            createdAt: new Date(),
+          });
         }
       }
-      
+
       return response.status(201).json(fullMessage);
     } catch (error: unknown) {
       const errorMessage =
@@ -151,20 +143,9 @@ export class MessageController {
 
   getMessages = async (request: Request, response: Response) => {
     try {
-      const token = request.headers.authorization?.split(" ")[1];
-      if (!token) {
-        return response
-          .status(401)
-          .json({ status: "failed", error: "Unauthorized" });
-      }
+      const currentUserId = (request as any).userId;
       const conversationId = request.params.id;
-      const tokenFind = await Token.findAll({ where: { token: token } });
-      if (!tokenFind || tokenFind.length === 0) {
-        return response
-          .status(401)
-          .json({ status: "failed", error: "Invalid token" });
-      }
-      const currentUserId = tokenFind[0].userId;
+      
       if (!conversationId || isNaN(parseInt(conversationId))) {
         return response
           .status(400)
@@ -182,12 +163,10 @@ export class MessageController {
         },
       });
       if (!UserInConversation) {
-        return response
-          .status(403)
-          .json({
-            status: "failed",
-            error: "User is not a participant in this conversation",
-          });
+        return response.status(403).json({
+          status: "failed",
+          error: "User is not a participant in this conversation",
+        });
       }
       const result = await this._messageService.getMessageByConversation(
         parseInt(conversationId),
@@ -199,31 +178,25 @@ export class MessageController {
     }
   };
 
-  readMessages=  async (request:Request, response: Response)=> {
+  readMessages = async (request: Request, response: Response) => {
     try {
-      const token = request.headers.authorization?.split(" ")[1];
-      if(!token) return response.status(401).json({status: "failed", error: "Token not found"});
-      const {conversationId} = request.body;
+
+      const currentUserId = (request as any).userId;
+
+      const { conversationId } = request.body;
+      const convId = parseInt(conversationId);
       
-      const convId= parseInt(conversationId);
-      const tokenFind = await Token.findAll({ where: { token: token } });
-      if (!tokenFind || tokenFind.length === 0) {
-        return response
-          .status(401)
-          .json({ status: "failed", error: "Invalid token" });
-      }
-      const currentUserId = tokenFind[0].userId;
       if (!conversationId || isNaN(parseInt(conversationId))) {
         return response
           .status(400)
           .json({ status: "failed", error: "Invalid conversation ID" });
       }
-      if (!currentUserId || isNaN(currentUserId)) {
+      if (isNaN(currentUserId)) {
         return response
           .status(400)
           .json({ status: "failed", error: "Invalid user ID" });
       }
-      
+
       const UserInConversation = await UserConversation.findOne({
         where: {
           userId: currentUserId,
@@ -231,18 +204,16 @@ export class MessageController {
         },
       });
       if (!UserInConversation) {
-        return response
-          .status(403)
-          .json({
-            status: "failed",
-            error: "User is not a participant in this conversation",
-          });
+        return response.status(403).json({
+          status: "failed",
+          error: "User is not a participant in this conversation",
+        });
       }
-      
+
       this._messageService.setReadMessages(currentUserId, convId);
-      return response.status(200).json({status: "success"});
+      return response.status(200).json({ status: "success" });
     } catch (error) {
       return response.status(400).json({ status: "failed", error: error });
     }
-  }
+  };
 }
