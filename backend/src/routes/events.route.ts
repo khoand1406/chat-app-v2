@@ -11,4 +11,7 @@ router.get("/:id", checkToken, controller.getEventDetails)
 router.post("/create", checkToken, controller.createEvent)
 router.post("/update/:id", checkToken, controller.updateEvent)
 router.delete("/delete/:id", checkToken, controller.deleteEvent)
+router.post("/confirm", checkToken, controller.confirmEvent)
+router.post("/reject", checkToken, controller.rejectEvent)
+
 export default router

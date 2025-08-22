@@ -1,4 +1,7 @@
+import { Attendance } from "../../models/attendence.model"
+
 export class CreateEventRequest{
+    title!:string
     content!: string
     description!: string
     participantIds!: number[]
@@ -7,15 +10,19 @@ export class CreateEventRequest{
 }
 
 export class CreateEventResponse{
+    title!:string
     content!: string
     description!: string
     startDate!: Date
     endDate!: Date
-    constructor(data: any){
+    invitedParticipants: Attendance[]
+    constructor(data: any, invited: Attendance[]= []){
+        this.title= data.title
         this.content= data.content,
-        this.description= data.content,
+        this.description= data.description,
         this.startDate= data.startDate,
-        this.endDate= data.endDate
+        this.endDate= data.endDate,
+        this.invitedParticipants= invited
     }
 }
 
