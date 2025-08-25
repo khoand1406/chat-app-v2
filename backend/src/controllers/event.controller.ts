@@ -89,7 +89,7 @@ export class EventController {
         return response.status(400).json({ error: "Invalid userId" });
 
       const {
-        title,
+        
         content,
         description,
         startDate,
@@ -98,7 +98,7 @@ export class EventController {
       } = request.body;
       const start = new Date(startDate);
       const end = new Date(endDate);
-      if (!title || !startDate || !endDate) {
+      if ( !startDate || !endDate) {
         return response.status(400).json({ error: "Missing required fields" });
       }
       if (start >= end) {
@@ -108,7 +108,7 @@ export class EventController {
       }
 
       const createPayload = {
-        title: title,
+        
         content: content,
         description: description,
         startDate: startDate,

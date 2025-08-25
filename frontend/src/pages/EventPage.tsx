@@ -1,330 +1,289 @@
-import { useState } from "react";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import DatePicker from "react-datepicker";
-import Select, { type GroupBase } from "react-select";
-import { vi } from "date-fns/locale";
-import { FiMapPin } from "react-icons/fi";
-import "react-datepicker/dist/react-datepicker.css";
+import React, { useEffect, useState } from "react";
+import {
+  FiChevronLeft,
+  FiChevronRight,
+  FiPlus,
+  FiClock,
+} from "react-icons/fi";
 import Layout from "../layout/Layout";
+import { getEvents } from "../services/eventServices";
 
-const schema = z.object({
-  title: z.string().min(1, "Title is required"),
-  startDate: z.date(),
-  endDate: z.date(),
-  isAllDay: z.boolean(),
-  location: z.string().optional(),
-  description: z.string().optional(),
-  attendees: z.array(z.object({ value: z.string(), label: z.string() })),
-  privacy: z.string(),
-  color: z.string(),
-  reminders: z.array(z.number())
-}).refine((data) => data.endDate >= data.startDate, {
-  message: "End date must be after start date",
-  path: ["endDate"],
-});
 
-// const colorOptions = [
-//   { value: "#FF5733", label: "Red" },
-//   { value: "#33FF57", label: "Green" },
-//   { value: "#3357FF", label: "Blue" },
-// ];
+interface CalendarEvent {
+  id: number;
+  content: string;
+  description: string;
+  start: Date;
+  end: Date;
+}
 
-const privacyOptions = [
-  { value: "public", label: "Public" },
-  { value: "private", label: "Private" },
-];
+type ViewMode = "day" | "week" | "month";
 
-const mockAttendees = [
-  { value: "1", label: "John Doe" },
-  { value: "2", label: "Jane Smith" },
-];
+const HOURS: number[] = Array.from({ length: 24 }, (_, i) => i);
+const DAYS: string[] = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-const reminderOptions: OptionType[] = [
-  { value: "10min", label: "10 minutes before" },
-  { value: "30min", label: "30 minutes before" },
-  { value: "1h", label: "1 hour before" },
-  { value: "1d", label: "1 day before" },
-];
-
-type OptionType = {
-  value: string;
-  label: string;
+const HOUR_HEIGHT = 120;            // phải khớp với TimeSlot: h-[120px]
+const MINUTE_HEIGHT = HOUR_HEIGHT / 60;
+/* -------------------- Helpers -------------------- */
+const getStartOfWeek = (date: Date) => {
+  const d = new Date(date);
+  const day = d.getDay() || 7;
+  if (day !== 1) d.setHours(-24 * (day - 1));
+  return d;
 };
 
-const colorOptions: OptionType[] = [
-  { value: "#FF5733", label: "Red" },
-  { value: "#33FF57", label: "Green" },
-  { value: "#3357FF", label: "Blue" },
-];
+const getMonthRange = (date: Date) => {
+  const startDate = new Date(date.getFullYear(), date.getMonth(), 1);
+  const endDate = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+  return { startDate, endDate };
+};
 
-const CreateEventPage = () => {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showToast, setShowToast] = useState(false);
+/* -------------------- Event Card -------------------- */
+const EventCard: React.FC<{ event: CalendarEvent; index: number; total: number }> = ({ event, index, total }) => {
+  const start = new Date(event.start);
+  const end = new Date(event.end);
 
-  const {
-    control,
-    handleSubmit,
-    formState: { errors },
-    watch,
-  } = useForm({
-    resolver: zodResolver(schema),
-    defaultValues: {
-      title: "",
-      startDate: new Date(),
-      endDate: new Date(),
-      isAllDay: false,
-      location: "",
-      description: "",
-      attendees: [],
-      privacy: "public",
-      color: "#FF5733",
-      reminders: []
-    }
+  const startMinutes = start.getHours() * 60 + start.getMinutes();
+  const durationMinutes = Math.max(
+    1,
+    Math.round((end.getTime() - start.getTime()) / 60000)
+  );
+
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const fmt = new Intl.DateTimeFormat("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone,
   });
 
-  const onSubmit = async (data: any) => {
-    setIsSubmitting(true);
-    try {
-      console.log("Form data:", data);
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 3000);
-    } catch (error) {
-      console.error("Error:", error);
-    } finally {
-      setIsSubmitting(false);
+  const widthPercent = 100 / total;
+  const leftPercent = index * widthPercent;
+
+  return (
+    <div
+      className="absolute bg-blue-500 text-white text-sm rounded px-2 py-1 overflow-hidden"
+      style={{
+        top: startMinutes * MINUTE_HEIGHT,
+        height: durationMinutes * MINUTE_HEIGHT,
+        width: `${widthPercent}%`,
+        left: `${leftPercent}%`,
+      }}
+    >
+      <p className="text-sm font-semibold truncate">{event.content}</p>
+      <span className="text-xs flex items-center gap-1">
+        <FiClock /> {fmt.format(start)} - {fmt.format(end)}
+      </span>
+    </div>
+  );
+};
+
+/* -------------------- Time Slot -------------------- */
+const TimeSlot: React.FC<{ hour: number }> = ({ hour }) => (
+  <div className="h-[120px] border-t border-gray-200 relative">
+    <span className="absolute -top-3 text-xs text-gray-500">{hour}:00</span>
+  </div>
+);
+/* -------------------- Week Grid -------------------- */
+const WeekGrid: React.FC<{ events: CalendarEvent[] }> = ({ events }) => {
+  return (
+    <div className="grid grid-cols-8 flex-1 overflow-auto">
+      {/* Time column */}
+      <div className="col-span-1 w-20 pr-2 text-right">
+        {HOURS.map((hour) => (
+          <TimeSlot key={hour} hour={hour} />
+        ))}
+      </div>
+
+      {/* Days columns */}
+      {DAYS.map((day, dayIdx) => {
+        const dayEvents = events.filter((ev) => {
+          const jsDay = ev.start.getDay(); // 0=Sun,...6=Sat
+          const mappedDay = (dayIdx + 1) % 7;
+          return jsDay === mappedDay;
+        });
+
+        // Gom nhóm overlap theo giờ
+        const groups: CalendarEvent[][] = [];
+        dayEvents.sort((a, b) => a.start.getTime() - b.start.getTime());
+
+        dayEvents.forEach((ev) => {
+          let placed = false;
+          for (const group of groups) {
+            if (group.every((g) => g.end <= ev.start || g.start >= ev.end)) {
+              continue; // không overlap
+            }
+            group.push(ev);
+            placed = true;
+            break;
+          }
+          if (!placed) groups.push([ev]);
+        });
+
+        return (
+          <div key={day} className="col-span-1 border-l border-gray-200 relative">
+            {HOURS.map((hour) => (
+              <div
+                key={hour}
+                className="h-[120px] border-t border-gray-100 hover:bg-blue-50 cursor-pointer"
+              />
+            ))}
+
+            {/* Render events trong nhóm overlap */}
+            {groups.map((group) =>
+              group.map((event, i) => (
+                <EventCard key={event.id} event={event} index={i} total={group.length} />
+              ))
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+/* -------------------- Main Calendar Page -------------------- */
+const Calendar: React.FC = () => {
+  const [viewMode, setViewMode] = useState<ViewMode>("week");
+  const [currentDate, setCurrentDate] = useState<Date>(new Date());
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [showEventModal, setShowEventModal] = useState(false);
+
+  /* Load events when date/viewMode changes */
+  useEffect(() => {
+    let startDate: Date;
+    let endDate: Date;
+
+    if (viewMode === "month") {
+      const range = getMonthRange(currentDate);
+      startDate = range.startDate;
+      endDate = range.endDate;
+    } else if (viewMode === "week") {
+      startDate = getStartOfWeek(currentDate);
+      endDate = new Date(startDate);
+      endDate.setDate(startDate.getDate() + 6);
+    } else {
+      startDate = new Date(currentDate);
+      endDate = new Date(currentDate);
     }
+
+    loadEvents(startDate, endDate);
+  }, [currentDate, viewMode]);
+
+ const loadEvents = async (startDate: Date, endDate: Date) => {
+  try {
+    const res = await getEvents(startDate, endDate);
+    setEvents(
+      res.map(e => ({
+        id: e.id,
+    content: e.content,
+    description: e.description,
+    start: new Date(e.startDate),
+    end: new Date(e.endDate)
+  }))
+    );
+  } catch (err) {
+    console.error("Failed to load events", err);
+  }
+};
+
+  const navigate = (direction: "next" | "prev") => {
+    const newDate = new Date(currentDate);
+    if (viewMode === "month") {
+      newDate.setMonth(
+        currentDate.getMonth() + (direction === "next" ? 1 : -1)
+      );
+    } else if (viewMode === "week") {
+      newDate.setDate(currentDate.getDate() + (direction === "next" ? 7 : -7));
+    } else {
+      newDate.setDate(currentDate.getDate() + (direction === "next" ? 1 : -1));
+    }
+    setCurrentDate(newDate);
   };
 
   return (
     <Layout>
-    <div className="min-h-screen bg-gray-50 overflow-y-auto">
-      <header className="sticky top-0 bg-white shadow-sm z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-gray-900">Create New Event</h1>
-            <div className="space-x-4">
+      <div className="flex flex-col h-screen bg-white w-auto">
+        {/* Header */}
+        <header className="p-4 border-b border-gray-200">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-4">
               <button
-                type="button"
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                onClick={() => console.log("Cancel")}
+                onClick={() => navigate("prev")}
+                className="p-2 hover:bg-gray-100 rounded-full"
               >
-                Cancel
+                <FiChevronLeft className="w-5 h-5" />
               </button>
               <button
-                type="submit"
-                form="event-form"
-                disabled={isSubmitting}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                onClick={() => navigate("next")}
+                className="p-2 hover:bg-gray-100 rounded-full"
               >
-                {isSubmitting ? "Saving..." : "Save Event"}
+                <FiChevronRight className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => setCurrentDate(new Date())}
+                className="px-4 py-2 text-sm font-medium bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Today
+              </button>
+            </div>
+            <h2 className="text-xl font-semibold">
+              {currentDate.toLocaleDateString("default", {
+                month: "long",
+                year: "numeric",
+              })}
+            </h2>
+            <div className="flex items-center gap-4">
+              <select
+                value={viewMode}
+                onChange={(e) => setViewMode(e.target.value as ViewMode)}
+                className="px-3 py-2 border border-gray-300 rounded-md"
+              >
+                <option value="day">Day</option>
+                <option value="week">Week</option>
+                <option value="month">Month</option>
+              </select>
+              <button
+                onClick={() => setShowEventModal(true)}
+                className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700"
+              >
+                <FiPlus /> New Event
               </button>
             </div>
           </div>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="lg:grid lg:grid-cols-[2fr_1fr] gap-8">
-          <form id="event-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            <div className="bg-white p-6 rounded-lg shadow">
-              <Controller
-                name="title"
-                control={control}
-                render={({ field }) => (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Event Title *
-                    </label>
-                    <input
-                      type="text"
-                      {...field}
-                      className="w-full px-3 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500"
-                    />
-                    {errors.title && (
-                      <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
-                    )}
-                  </div>
-                )}
-              />
-
-              <div className="mt-6">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Date and Time
-                </label>
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <Controller
-                    name="startDate"
-                    control={control}
-                    render={({ field }) => (
-                      <DatePicker
-                        selected={field.value}
-                        onChange={field.onChange}
-                        showTimeSelect
-                        dateFormat="Pp"
-                        locale={vi}
-                        className="w-full px-3 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    )}
-                  />
-                  <Controller
-                    name="endDate"
-                    control={control}
-                    render={({ field }) => (
-                      <DatePicker
-                        selected={field.value}
-                        onChange={field.onChange}
-                        showTimeSelect
-                        dateFormat="Pp"
-                        locale={vi}
-                        className="w-full px-3 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    )}
-                  />
-                  
+          {viewMode === "week" && (
+            <div className="grid grid-cols-8 text-sm font-medium">
+              <div className="col-span-1 w-20" />
+              {DAYS.map((day) => (
+                <div key={day} className="col-span-1 p-4 text-center">
+                  {day}
                 </div>
-              </div>
-
-              <Controller
-                name="location"
-                control={control}
-                render={({ field }) => (
-                  <div className="mt-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Location
-                    </label>
-                    <div className="relative">
-                      <FiMapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                      <input
-                        type="text"
-                        {...field}
-                        className="w-full pl-10 pr-3 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </div>
-                  </div>
-                )}
-              />
-
-              <Controller
-                name="attendees"
-                control={control}
-                render={({ field }) => (
-                  <div className="mt-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Attendees
-                    </label>
-                    <Select
-                      {...field}
-                      isMulti
-                      options={mockAttendees}
-                      className="basic-multi-select"
-                      classNamePrefix="select"
-                    />
-                  </div>
-                )}
-              />
-
-              <Controller
-                name="description"
-                control={control}
-                render={({ field }) => (
-                  <div className="mt-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Description
-                    </label>
-                    <textarea
-                      {...field}
-                      rows={4}
-                      className="w-full px-3 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-                )}
-              />
+              ))}
             </div>
-          </form>
+          )}
+        </header>
 
-          <div className="space-y-6 lg:mt-0 mt-6">
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Event Settings</h2>
-              
-              <Controller
-  name="privacy"
-  control={control}
-  render={({ field }) => (
-    <Select
-      value={privacyOptions.find(opt => opt.value === field.value)}
-      onChange={(val) => field.onChange(val?.value)}
-      options={privacyOptions}
-    />
-  )}
-/>
+        {/* Calendar grid */}
+        {viewMode === "week" && <WeekGrid events={events} />}
+        {/* TODO: thêm DayGrid & MonthGrid */}
 
-              <Controller
-  name="color"
-  control={control}
-  render={({ field }) => (
-    <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        Calendar Color
-      </label>
-      <Select<OptionType, false, GroupBase<OptionType>>
-        {...field}
-        options={colorOptions}
-        className="basic-select"
-        classNamePrefix="select"
-        onChange={(option) => field.onChange(option?.value)} // ✅ quan trọng
-        value={colorOptions.find((c) => c.value === field.value)} // ✅ map value string <-> option object
-      />
-    </div>
-  )}
-/>
-  <Controller
-  name="reminders"
-  control={control}
-  render={({ field }) => (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        Reminders
-      </label>
-      <Select<OptionType, true, GroupBase<OptionType>>
-        isMulti
-        options={reminderOptions} // ✅ truyền array option
-        className="basic-multi-select"
-        classNamePrefix="select"
-        value={reminderOptions.filter((opt) =>
-          field.value?.toString().includes(opt.value)
-        )} // map string[] -> option[]
-        onChange={(selected) =>
-          field.onChange(selected.map((opt) => opt.value))
-        } // map option[] -> string[]
-      />
-    </div>
-  )}
-/>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Mini Calendar</h2>
-              <DatePicker
-                selected={watch("startDate")}
-                onChange={() => {}}
-                inline
-                locale={vi}
-              />
+        {/* Modal */}
+        {showEventModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <div className="bg-white p-6 rounded-lg w-[400px]">
+              <h3 className="text-lg font-semibold mb-4">Create New Event</h3>
+              <button
+                onClick={() => setShowEventModal(false)}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md"
+              >
+                Close
+              </button>
             </div>
           </div>
-        </div>
-      </main>
-
-      {showToast && (
-        <div className="fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-md shadow-lg">
-          Event saved successfully!
-        </div>
-      )}
-    </div>
+        )}
+      </div>
     </Layout>
   );
 };
 
-export default CreateEventPage;
+export default Calendar;

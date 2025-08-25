@@ -12,6 +12,7 @@ import { UpdateEventRequest } from "../dtos/events/update-event.dto";
 import { Attendance } from "../models/attendence.model";
 import { Events } from "../models/event.model";
 import { User } from "../models/user.model";
+import moment from "moment-timezone";
 
 export class EventServices {
   createEvents = async (
@@ -37,12 +38,15 @@ export class EventServices {
         .map((item) => Number(item))
         .sort();
 
+      const startUtc = moment.tz(model.startDate, "Asia/Ho_Chi_Minh").utc().toDate();
+      const endUtc = moment.tz(model.endDate, "Asia/Ho_Chi_Minh").utc().toDate();
+
       const createPayload = {
-        title: model.title,
+        
         content: model.content,
         description: model.description,
-        startDate: model.startDate,
-        endDate: model.endDate,
+        startDate: startUtc,
+        endDate: endUtc,
       };
       const event = await Events.create(createPayload, { transaction });
       if (!event || !event.id) throw new Error("Failed to create event");
@@ -64,6 +68,9 @@ export class EventServices {
         );
 
       await transaction.commit();
+
+      event.startDate = moment.utc(event.startDate).tz("Asia/Ho_Chi_Minh").toDate();
+      event.endDate = moment.utc(event.endDate).tz("Asia/Ho_Chi_Minh").toDate();
       return new CreateEventResponse(event, result);
     } catch (error) {
       transaction.rollback();
