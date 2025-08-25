@@ -25,4 +25,5 @@ export const READ_NOTIFICATION= (notiId:number)=> `/api/notifications/${notiId}/
 export const READ_ALL= '/api/notifications/read-all'
 
 export const EVENTS= '/api/events'
-export const EVENTS_DETAILS= (eventId: number)=> `api/events/${eventId}`
+export const EVENTS_DETAILS= (eventId: number)=> `/api/events/${eventId}`
+export const CREATE_EVENTS= `/api/events/create`

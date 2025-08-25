@@ -83,6 +83,7 @@ export class EventController {
   };
 
   createEvent = async (request: Request, response: Response) => {
+    const io= request.app.get("io");
     try {
       const userId = (request as any).userId;
       if (!userId || isNaN(userId))
@@ -119,6 +120,7 @@ export class EventController {
         createPayload,
         userId
       );
+      io.emit("event:created", result);
       return response.status(201).json(result);
     } catch (error) {
       console.log(error);

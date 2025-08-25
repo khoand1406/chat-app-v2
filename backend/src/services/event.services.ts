@@ -1,3 +1,4 @@
+import moment from "moment-timezone";
 import { Op } from "sequelize";
 import { sequelize } from "../database/config";
 import { CreateAttendenceRequest } from "../dtos/attendence.dto";
@@ -12,7 +13,6 @@ import { UpdateEventRequest } from "../dtos/events/update-event.dto";
 import { Attendance } from "../models/attendence.model";
 import { Events } from "../models/event.model";
 import { User } from "../models/user.model";
-import moment from "moment-timezone";
 
 export class EventServices {
   createEvents = async (
@@ -133,7 +133,7 @@ export class EventServices {
           {
             model: Attendance,
             where: { userId: userId },
-            required: true,
+            required: false,
             include: [
               {
                 model: User,
@@ -158,13 +158,13 @@ export class EventServices {
           {
             model: Attendance,
             as: "attendances",
-            required: true,
+            required: false,
+            where: { status: "confirmed" },
             include: [
               {
                 model: User,
                 as: "user",
                 attributes: ["id", "username", "email"],
-                where: { status: "confirmed" },
               },
             ],
           },

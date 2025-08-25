@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from "react";
-import {
-  FiChevronLeft,
-  FiChevronRight,
-  FiPlus,
-  FiClock,
-} from "react-icons/fi";
+import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import Layout from "../layout/Layout";
-import { getEvents } from "../services/eventServices";
+import { getEventDetail, getEvents } from "../services/eventServices";
+
+import { format, startOfWeek, endOfWeek } from "date-fns";
+import CreateEventModal from "../components/CreateEventsModals";
+import { socket } from "../socket/config";
 
 
 interface CalendarEvent {
@@ -22,9 +21,9 @@ type ViewMode = "day" | "week" | "month";
 const HOURS: number[] = Array.from({ length: 24 }, (_, i) => i);
 const DAYS: string[] = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-const HOUR_HEIGHT = 120;            // phải khớp với TimeSlot: h-[120px]
+const HOUR_HEIGHT = 60;
 const MINUTE_HEIGHT = HOUR_HEIGHT / 60;
-/* -------------------- Helpers -------------------- */
+
 const getStartOfWeek = (date: Date) => {
   const d = new Date(date);
   const day = d.getDay() || 7;
@@ -39,7 +38,12 @@ const getMonthRange = (date: Date) => {
 };
 
 /* -------------------- Event Card -------------------- */
-const EventCard: React.FC<{ event: CalendarEvent; index: number; total: number }> = ({ event, index, total }) => {
+const EventCard: React.FC<{
+  event: CalendarEvent;
+  index: number;
+  total: number;
+  onclick: (ev: CalendarEvent, e: React.MouseEvent) => void;
+}> = ({ event, index, total, onclick }) => {
   const start = new Date(event.start);
   const end = new Date(event.end);
 
@@ -49,13 +53,13 @@ const EventCard: React.FC<{ event: CalendarEvent; index: number; total: number }
     Math.round((end.getTime() - start.getTime()) / 60000)
   );
 
-  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const fmt = new Intl.DateTimeFormat("vi-VN", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-    timeZone,
-  });
+  // const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  // const fmt = new Intl.DateTimeFormat("vi-VN", {
+  //   hour: "2-digit",
+  //   minute: "2-digit",
+  //   hour12: false,
+  //   timeZone,
+  // });
 
   const widthPercent = 100 / total;
   const leftPercent = index * widthPercent;
@@ -66,26 +70,31 @@ const EventCard: React.FC<{ event: CalendarEvent; index: number; total: number }
       style={{
         top: startMinutes * MINUTE_HEIGHT,
         height: durationMinutes * MINUTE_HEIGHT,
-        width: `${widthPercent}%`,
-        left: `${leftPercent}%`,
+        width: `${widthPercent - 2}%`,
+        left: `${leftPercent - 2}%`,
       }}
+      onClick={(e) => onclick(event, e)}
     >
-      <p className="text-sm font-semibold truncate">{event.content}</p>
-      <span className="text-xs flex items-center gap-1">
-        <FiClock /> {fmt.format(start)} - {fmt.format(end)}
-      </span>
+      <p className="text-sm font-semibold">{event.content}</p>
     </div>
   );
 };
 
 /* -------------------- Time Slot -------------------- */
 const TimeSlot: React.FC<{ hour: number }> = ({ hour }) => (
-  <div className="h-[120px] border-t border-gray-200 relative">
+  <div className="h-[60px] border-t border-gray-200 relative">
     <span className="absolute -top-3 text-xs text-gray-500">{hour}:00</span>
   </div>
 );
 /* -------------------- Week Grid -------------------- */
-const WeekGrid: React.FC<{ events: CalendarEvent[] }> = ({ events }) => {
+const WeekGrid: React.FC<{
+  events: CalendarEvent[];
+  onEventclick: (
+    ev: CalendarEvent,
+    e: React.MouseEvent
+  ) => void | Promise<void>;
+  onCeilClick: (dayIdx: number, hour: number) => void;
+}> = ({ events, onEventclick, onCeilClick }) => {
   return (
     <div className="grid grid-cols-8 flex-1 overflow-auto">
       {/* Time column */}
@@ -98,12 +107,11 @@ const WeekGrid: React.FC<{ events: CalendarEvent[] }> = ({ events }) => {
       {/* Days columns */}
       {DAYS.map((day, dayIdx) => {
         const dayEvents = events.filter((ev) => {
-          const jsDay = ev.start.getDay(); // 0=Sun,...6=Sat
+          const jsDay = ev.start.getDay();
           const mappedDay = (dayIdx + 1) % 7;
           return jsDay === mappedDay;
         });
 
-        // Gom nhóm overlap theo giờ
         const groups: CalendarEvent[][] = [];
         dayEvents.sort((a, b) => a.start.getTime() - b.start.getTime());
 
@@ -121,18 +129,28 @@ const WeekGrid: React.FC<{ events: CalendarEvent[] }> = ({ events }) => {
         });
 
         return (
-          <div key={day} className="col-span-1 border-l border-gray-200 relative">
+          <div
+            key={day}
+            className="col-span-1 border-l border-gray-200 relative "
+          >
             {HOURS.map((hour) => (
               <div
                 key={hour}
-                className="h-[120px] border-t border-gray-100 hover:bg-blue-50 cursor-pointer"
+                onClick={() => onCeilClick(dayIdx, hour)}
+                className="h-[60px] border-t border-gray-100 hover:bg-blue-50 cursor-pointer"
               />
             ))}
 
             {/* Render events trong nhóm overlap */}
             {groups.map((group) =>
               group.map((event, i) => (
-                <EventCard key={event.id} event={event} index={i} total={group.length} />
+                <EventCard
+                  key={event.id}
+                  event={event}
+                  index={i}
+                  total={group.length}
+                  onclick={onEventclick}
+                />
               ))
             )}
           </div>
@@ -147,7 +165,18 @@ const Calendar: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>("week");
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [showEventModal, setShowEventModal] = useState(false);
+
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(
+    null
+  );
+  const [eventDetail, setEventDetail] = useState<any>(null);
+
+  const [modalPosition, setModalPosition] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [selectedDateTime, setSelectedDateTime] = useState<Date | null>(null);
 
   /* Load events when date/viewMode changes */
   useEffect(() => {
@@ -170,22 +199,77 @@ const Calendar: React.FC = () => {
     loadEvents(startDate, endDate);
   }, [currentDate, viewMode]);
 
- const loadEvents = async (startDate: Date, endDate: Date) => {
-  try {
-    const res = await getEvents(startDate, endDate);
-    setEvents(
-      res.map(e => ({
-        id: e.id,
-    content: e.content,
-    description: e.description,
-    start: new Date(e.startDate),
-    end: new Date(e.endDate)
-  }))
-    );
-  } catch (err) {
-    console.error("Failed to load events", err);
-  }
-};
+  const handleCellClick = (dayIdx: number, hour: number) => {
+    const startOfWeekDate = getStartOfWeek(currentDate);
+    const clickedDate = new Date(startOfWeekDate);
+    clickedDate.setDate(startOfWeekDate.getDate() + dayIdx); // ✅ tính ngày trong tuần
+    clickedDate.setHours(hour, 0, 0, 0);
+
+    setSelectedDateTime(clickedDate);
+    setIsCreateModalOpen(true);
+  };
+
+  const loadEvents = async (startDate: Date, endDate: Date) => {
+    try {
+      const startStr = format(startDate, "yyyy-MM-dd");
+      const endStr = format(endDate, "yyyy-MM-dd");
+      const res = await getEvents(startStr, endStr);
+      setEvents(
+        res.map((e) => ({
+          id: e.id,
+          content: e.content,
+          description: e.description,
+          start: new Date(e.startDate),
+          end: new Date(e.endDate),
+        }))
+      );
+    } catch (err) {
+      console.error("Failed to load events", err);
+    }
+  };
+
+useEffect(() => {
+
+   if (!socket.connected) {
+      socket.connect();
+    }
+    
+    socket.on("connect", () => {
+      console.log("✅ Socket connected:", socket.id);
+    });
+  socket.on("disconnect", () => {
+    console.log("Socket disconnected");
+  });
+  socket.on("event:created", (newEvent) => {
+    const mapped = {
+      id: newEvent.id,
+      content: newEvent.content,
+      description: newEvent.description,
+      start: new Date(newEvent.startDate),
+      end: new Date(newEvent.endDate),
+    };
+    setEvents((prev) => [...prev, mapped]);
+  });
+
+  return () => {
+    socket.off("event:created");
+  };
+}, []);
+
+  const handleEventClick = async (
+    event: CalendarEvent,
+    e: React.MouseEvent
+  ) => {
+    setSelectedEvent(event);
+    try {
+      const detail = await getEventDetail(event.id);
+      setEventDetail(detail);
+
+      setModalPosition({ x: e.clientX, y: e.clientY });
+    } catch (err) {
+      console.error("Failed to fetch event detail", err);
+    }
+  };
 
   const navigate = (direction: "next" | "prev") => {
     const newDate = new Date(currentDate);
@@ -243,12 +327,27 @@ const Calendar: React.FC = () => {
                 <option value="week">Week</option>
                 <option value="month">Month</option>
               </select>
-              <button
-                onClick={() => setShowEventModal(true)}
-                className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700"
-              >
-                <FiPlus /> New Event
-              </button>
+              <div className="flex items-center gap-2 px-4 py-2 text-black">
+                {viewMode === "week" ? (
+                  <>
+                    {format(
+                      startOfWeek(currentDate, { weekStartsOn: 1 }),
+                      "dd MMM yyyy"
+                    )}{" "}
+                    –{" "}
+                    {format(
+                      endOfWeek(currentDate, { weekStartsOn: 1 }),
+                      "dd MMM yyyy"
+                    )}
+                  </>
+                ) : (
+                  currentDate.toLocaleDateString("default", {
+                    day: "2-digit",
+                    month: "long",
+                    year: "numeric",
+                  })
+                )}
+              </div>
             </div>
           </div>
           {viewMode === "week" && (
@@ -262,25 +361,53 @@ const Calendar: React.FC = () => {
             </div>
           )}
         </header>
-
         {/* Calendar grid */}
-        {viewMode === "week" && <WeekGrid events={events} />}
-        {/* TODO: thêm DayGrid & MonthGrid */}
-
-        {/* Modal */}
-        {showEventModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-            <div className="bg-white p-6 rounded-lg w-[400px]">
-              <h3 className="text-lg font-semibold mb-4">Create New Event</h3>
+        {viewMode === "week" && (
+          <WeekGrid
+            events={events}
+            onEventclick={(event: CalendarEvent, e: React.MouseEvent) => {
+              void handleEventClick(event, e);
+            }}
+            onCeilClick={handleCellClick}
+          />
+        )}
+        {/* TODO: thêm DayGrid & MonthGrid */}:{/* Modal */}
+        {selectedEvent && modalPosition && (
+          <div className="fixed inset-0 bg-opacity-30">
+            <div
+              className="absolute bg-white p-4 rounded-lg shadow-lg w-[300px]"
+              style={{
+                top: modalPosition.y,
+                left: modalPosition.x,
+                transform: "translate(-50%, -10%)", // căn chỉnh cho đẹp
+              }}
+            >
+              <h3 className="text-lg font-semibold mb-2">
+                {eventDetail?.content || selectedEvent.content}
+              </h3>
+              <p className="text-sm text-gray-600 mb-2">
+                {eventDetail?.description || selectedEvent.description}
+              </p>
+              <p className="text-xs text-gray-500">
+                {selectedEvent.start.toLocaleString()} -{" "}
+                {selectedEvent.end.toLocaleString()}
+              </p>
               <button
-                onClick={() => setShowEventModal(false)}
-                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md"
+                onClick={() => setSelectedEvent(null)}
+                className="mt-3 px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-md"
               >
                 Close
               </button>
             </div>
           </div>
         )}
+        <CreateEventModal
+          isOpen={isCreateModalOpen}
+          onClose={() => setIsCreateModalOpen(false)}
+          defaultDate={selectedDateTime || new Date()}
+          onSubmit={(data: any) => console.log("Create Event:", data)}
+        />
+        ;
       </div>
     </Layout>
   );

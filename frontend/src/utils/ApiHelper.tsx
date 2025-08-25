@@ -10,7 +10,7 @@ class ApiHelper{
 
     private handleError(error: any) {
         if(error.response && error.response.status === 403) {
-            const errorMessage = error.response.data.message || 'Forbidden';
+            const errorMessage = error.response.data?.message || 'Forbidden';
             toast.error(errorMessage, {
                 position: "top-right",
                 autoClose: 5000,
@@ -19,11 +19,11 @@ class ApiHelper{
                 });
         
         }else if(error.response && error.response.status ===401){
-            const errorMessage= error.response.data.message || 'Login failed'
+            const errorMessage= error.response.data?.message || 'Login failed'
             throw new Error(errorMessage);
         }else{
-            console.error('An unexpected error occurred:', error.response.data || error.message || error);
-            throw new Error('An unexpected error occurred:', error.response.data || error.message || error)
+            console.error('An unexpected error occurred:', error.response?.data || error.message || error);
+            throw new Error('An unexpected error occurred:', error.response?.data || error.message || error)
         }
     }
 
