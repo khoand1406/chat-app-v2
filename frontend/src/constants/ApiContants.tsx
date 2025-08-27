@@ -28,3 +28,4 @@ export const EVENTS= '/api/events'
 export const EVENTS_DETAILS= (eventId: number)=> `/api/events/${eventId}`
 export const CREATE_EVENTS= `/api/events/create`
 export const CONFIRM_EVENTS= `/api/events/confirm`
+export const REJECT_EVENTS= `/api/events/reject`

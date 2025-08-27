@@ -37,6 +37,8 @@ const NavBar: React.FC<NavBarProps> = ({
           console.error("Fail to mark notifications as read", err);
         }
       }
+    } else if (id === 2) {
+      navigate("/dashboard");
     } else if (id === 4) {
       navigate("/events");
     } else {

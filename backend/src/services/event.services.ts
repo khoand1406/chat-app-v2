@@ -13,6 +13,7 @@ import { UpdateEventRequest } from "../dtos/events/update-event.dto";
 import { Attendance } from "../models/attendence.model";
 import { Events } from "../models/event.model";
 import { User } from "../models/user.model";
+import { fromZonedTime } from "date-fns-tz";
 
 export class EventServices {
   createEvents = async (
@@ -79,32 +80,41 @@ export class EventServices {
     }
   };
 
-  getEvents = async (
-    currentUserId: number,
-    startDate: Date,
-    endDate: Date
-  ): Promise<EventResponse[]> => {
-    try {
-      const events = await Events.findAll({
-        include: [
-          {
-            model: Attendance,
-            where: { userId: currentUserId, status: "confirmed" },
-            required: true,
-          },
-        ],
-        where: {
-          startDate: { [Op.gte]: startDate },
-          endDate: { [Op.lte]: endDate },
-        },
-        order: [["startDate", "ASC"]],
-      });
+getEvents = async (
+  currentUserId: number,
+  startDate: Date,
+  endDate: Date
+): Promise<EventResponse[]> => {
+  try {
+    const vnStart = new Date(startDate);
+    vnStart.setHours(0, 0, 0, 0);
 
-      return events.map((e) => new EventResponse(e));
-    } catch (error) {
-      throw new Error("An error occurred while fetching events: " + error);
-    }
-  };
+    const vnEnd = new Date(endDate);
+    vnEnd.setHours(0, 0, 0, 0);
+
+    const utcStart = fromZonedTime(vnStart, "Asia/Ho_Chi_Minh");
+    const utcEnd = fromZonedTime(vnEnd, "Asia/Ho_Chi_Minh");
+
+    const events = await Events.findAll({
+      include: [
+        {
+          model: Attendance,
+          where: { userId: currentUserId, status: "confirmed" },
+          required: true,
+        },
+      ],
+      where: {
+        startDate: { [Op.gte]: utcStart },
+        endDate: { [Op.lt]: utcEnd },
+      },
+      order: [["startDate", "ASC"]],
+    });
+
+    return events.map((e) => new EventResponse(e));
+  } catch (error) {
+    throw new Error("An error occurred while fetching events: " + error);
+  }
+};
   getEventsByDate = async (
     userId: number,
     date: Date
@@ -303,7 +313,6 @@ export class EventServices {
       
       await existingAttendence.update({ status: "confirmed" }, { transaction });
 
-
       await transaction.commit();
       return event;
 
@@ -316,7 +325,7 @@ export class EventServices {
       throw error;
     }
   }
-  rejectEvents = async (currentUserId: number, eventId: number): Promise<void> => {
+  rejectEvents = async (currentUserId: number, eventId: number): Promise<EventResponse> => {
   const transaction = await sequelize.transaction();
   try {
     const event = await Events.findByPk(eventId, { transaction });
@@ -332,6 +341,7 @@ export class EventServices {
     await existingAttendance.update({ status: "rejected" }, { transaction });
 
     await transaction.commit();
+    return event;
   } catch (error) {
     await transaction.rollback();
     console.error(error);

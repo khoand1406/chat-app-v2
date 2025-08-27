@@ -29,6 +29,9 @@ export class Notification extends Model{
     @Column({ type: DataType.INTEGER, allowNull: true })
     eventId!: number | null;
 
+    @Column({type: DataType.STRING, allowNull: true})
+    status!: string | null
+
     @BelongsTo(()=> User)
     user!: User
 

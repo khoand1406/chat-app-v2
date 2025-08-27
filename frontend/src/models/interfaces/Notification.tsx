@@ -19,6 +19,7 @@ export interface Notification{
     isRead: boolean
     type: string
     eventId: number | null
+    status: string | null
 
 
 }

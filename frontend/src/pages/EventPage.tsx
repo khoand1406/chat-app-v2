@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import Layout from "../layout/Layout";
-import { getEventDetail, getEvents } from "../services/eventServices";
+import { getEventDetail, getEvents, rejectEvent } from "../services/eventServices";
 
 import { endOfWeek, format, startOfWeek } from "date-fns";
-import { ToastContainer } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
 import CreateEventModal from "../components/CreateEventsModals";
 import { socket } from "../socket/config";
 
@@ -15,6 +15,7 @@ interface CalendarEvent {
   description: string;
   start: Date;
   end: Date;
+  creatorId: number;
 }
 
 type ViewMode = "day" | "week" | "month";
@@ -44,7 +45,8 @@ const EventCard: React.FC<{
   index: number;
   total: number;
   onclick: (ev: CalendarEvent, e: React.MouseEvent) => void;
-}> = ({ event, index, total, onclick }) => {
+  currentUserId: number;
+}> = ({ event, index, total, onclick, currentUserId }) => {
   const start = new Date(event.start);
   const end = new Date(event.end);
 
@@ -54,20 +56,13 @@ const EventCard: React.FC<{
     Math.round((end.getTime() - start.getTime()) / 60000)
   );
 
-  // const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  // const fmt = new Intl.DateTimeFormat("vi-VN", {
-  //   hour: "2-digit",
-  //   minute: "2-digit",
-  //   hour12: false,
-  //   timeZone,
-  // });
-
   const widthPercent = 100 / total;
   const leftPercent = index * widthPercent;
-
+  const bgColor =
+    event.creatorId === currentUserId ? "bg-blue-500" : "bg-blue-300";
   return (
     <div
-      className="absolute bg-blue-500 text-white text-sm rounded px-2 py-1 overflow-hidden"
+      className={`absolute ${bgColor} text-white text-sm rounded px-2 py-1 overflow-hidden`}
       style={{
         top: startMinutes * MINUTE_HEIGHT,
         height: durationMinutes * MINUTE_HEIGHT,
@@ -94,8 +89,10 @@ const WeekGrid: React.FC<{
     ev: CalendarEvent,
     e: React.MouseEvent
   ) => void | Promise<void>;
+
   onCeilClick: (dayIdx: number, hour: number) => void;
-}> = ({ events, onEventclick, onCeilClick }) => {
+  currentUserId: number
+}> = ({ events, onEventclick, onCeilClick, currentUserId }) => {
   return (
     <div className="grid grid-cols-8 flex-1 overflow-auto">
       {/* Time column */}
@@ -151,6 +148,7 @@ const WeekGrid: React.FC<{
                   index={i}
                   total={group.length}
                   onclick={onEventclick}
+                  currentUserId={currentUserId}
                 />
               ))
             )}
@@ -191,7 +189,7 @@ const Calendar: React.FC = () => {
     } else if (viewMode === "week") {
       startDate = getStartOfWeek(currentDate);
       endDate = new Date(startDate);
-      endDate.setDate(startDate.getDate() + 6);
+      endDate.setDate(startDate.getDate() + 7);
     } else {
       startDate = new Date(currentDate);
       endDate = new Date(currentDate);
@@ -222,6 +220,7 @@ const Calendar: React.FC = () => {
           description: e.description,
           start: new Date(e.startDate),
           end: new Date(e.endDate),
+          creatorId: e.creatorId
         }))
       );
     } catch (err) {
@@ -250,22 +249,30 @@ useEffect(() => {
       description: newEvent.description,
       start: new Date(newEvent.startDate),
       end: new Date(newEvent.endDate),
+      creatorId: newEvent.creatorId
     };
-    setEvents((prev) => [...prev, mapped]);
+    setEvents((prev) => {
+    const exists = prev.some((e) => e.id === mapped.id);
+    return exists ? prev : [...prev, mapped];
+  });
+  };
+const handleEventConfirmed = (newEvent: any) => {
+  const normalizedEvent = {
+    ...newEvent,
+    start: newEvent.start ? new Date(newEvent.start) : new Date(),
+    end: newEvent.end ? new Date(newEvent.end) : new Date(),
+    status: "confirmed",
   };
 
-const handleEventConfirmed = (newEvent: any) => {
   setEvents((prevEvents) => {
-    const exists = prevEvents.some((e) => e.id === newEvent.id);
+    const exists = prevEvents.some((e) => e.id === normalizedEvent.id);
 
     if (exists) {
-      
       return prevEvents.map((e) =>
-        e.id === newEvent.id ? { ...e, status: "confirmed" } : e
+        e.id === normalizedEvent.id ? { ...e, status: "confirmed" } : e
       );
     } else {
-      
-      return [...prevEvents, newEvent];
+      return [...prevEvents, normalizedEvent];
     }
   });
 };
@@ -299,6 +306,22 @@ const handleEventConfirmed = (newEvent: any) => {
       console.error("Failed to fetch event detail", err);
     }
   };
+
+  const rejectEventClick = async (eventId: number) => {
+  try {
+    await rejectEvent(eventId);
+    toast.success("Reject event successfully!");
+
+    // Xóa event khỏi state
+    setEvents((prev) => prev.filter((e) => e.id !== eventId));
+
+    // Đóng modal sau khi reject
+    setSelectedEvent(null);
+  } catch (error) {
+    toast.error("Failed to reject event");
+    console.error(error);
+  }
+};
 
   const navigate = (direction: "next" | "prev") => {
     const newDate = new Date(currentDate);
@@ -398,38 +421,48 @@ const handleEventConfirmed = (newEvent: any) => {
               void handleEventClick(event, e);
             }}
             onCeilClick={handleCellClick}
+            currentUserId={parseInt(userId? userId: "")}
           />
         )}
         {/* TODO: thêm DayGrid & MonthGrid */}:{/* Modal */}
         {selectedEvent && modalPosition && (
-          <div className="fixed inset-0 bg-opacity-30">
-            <div
-              className="absolute bg-white p-4 rounded-lg shadow-lg w-[300px]"
-              style={{
-                top: modalPosition.y,
-                left: modalPosition.x,
-                transform: "translate(-50%, -10%)", // căn chỉnh cho đẹp
-              }}
-            >
-              <h3 className="text-lg font-semibold mb-2">
-                {eventDetail?.content || selectedEvent.content}
-              </h3>
-              <p className="text-sm text-gray-600 mb-2">
-                {eventDetail?.description || selectedEvent.description}
-              </p>
-              <p className="text-xs text-gray-500">
-                {selectedEvent.start.toLocaleString()} -{" "}
-                {selectedEvent.end.toLocaleString()}
-              </p>
-              <button
-                onClick={() => setSelectedEvent(null)}
-                className="mt-3 px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-md"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        )}
+  <div className="fixed inset-0 bg-opacity-30">
+    <div
+      className="absolute bg-white p-4 rounded-lg shadow-lg w-[300px]"
+      style={{
+        top: modalPosition.y,
+        left: modalPosition.x,
+        transform: "translate(-50%, -10%)",
+      }}
+    >
+      <h3 className="text-lg font-semibold mb-2">
+        {eventDetail?.content || selectedEvent.content}
+      </h3>
+      <p className="text-sm text-gray-600 mb-2">
+        {eventDetail?.description || selectedEvent.description}
+      </p>
+      <p className="text-xs text-gray-500">
+        {selectedEvent.start.toLocaleString()} -{" "}
+        {selectedEvent.end.toLocaleString()}
+      </p>
+
+      <div className="flex justify-end gap-2 mt-3">
+        <button
+          onClick={() => setSelectedEvent(null)}
+          className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-md"
+        >
+          Close
+        </button>
+        <button
+          onClick={() => rejectEventClick(selectedEvent.id)}
+          className="px-3 py-1 text-sm text-red-600 hover:bg-red-100 rounded-md"
+        >
+          Decline
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
         <CreateEventModal
           isOpen={isCreateModalOpen}
@@ -439,7 +472,7 @@ const handleEventConfirmed = (newEvent: any) => {
         />
         ;
       </div>
-       <ToastContainer position="top-right" autoClose={3000} />
+       <ToastContainer position="top-right" autoClose={3000} pauseOnHover= {false} />
     </Layout>
   );
 };

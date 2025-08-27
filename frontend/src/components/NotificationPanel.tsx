@@ -5,8 +5,9 @@ import {
 } from "react-icons/io5";
 import type { Notification } from "../models/interfaces/Notification";
 import { formatDate } from "../utils/FormatDate";
-import { confirmEvent } from "../services/eventServices";
+import { confirmEvent, rejectEvent } from "../services/eventServices";
 import { toast, ToastContainer } from "react-toastify";
+import { useEffect, useState } from "react";
 
 interface NotificationProps {
   isOpen: boolean;
@@ -19,21 +20,44 @@ interface NotificationProps {
 const NotificationPanel: React.FC<NotificationProps> = ({
   isOpen,
   notifications,
-  onDeclineInvite,
 }) => {
-   const consfirmEvent= async (eventId: number)=> {
+  const [localNotifications, setLocalNotifications] = useState(notifications);
+
+  useEffect(() => {
+    setLocalNotifications(notifications);
+  }, [notifications]);
+
+  const confirmEventClick = async (eventId: number) => {
     try {
       await confirmEvent(eventId);
       toast.success("Add event successfully!");
+
+      // Xoá notification khỏi local state
+      setLocalNotifications((prev) =>
+        prev.filter((n) => n.eventId !== eventId)
+      );
     } catch (error) {
-      toast.error("Failed to mark notifications as read");
+      toast.error("Failed to confirm event");
       console.error(error);
     }
-  }
+  };
+
+  const rejectEventClick = async (eventId: number) => {
+    try {
+      await rejectEvent(eventId);
+      toast.success("Reject event successfully!");
+
+      // Xoá notification khỏi local state
+      setLocalNotifications((prev) =>
+        prev.filter((n) => n.eventId !== eventId)
+      );
+    } catch (error) {
+      toast.error("Failed to confirm event");
+      console.error(error);
+    }
+  };
 
   if (!isOpen) return null;
-
-
 
   return (
     <div className="fixed right-4 top-4 h-[90vh] w-[380px] bg-white rounded-xl shadow-lg border border-gray-100 flex flex-col z-[2000]">
@@ -50,8 +74,8 @@ const NotificationPanel: React.FC<NotificationProps> = ({
 
       {/* Notification list */}
       <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
-        {notifications.length > 0 ? (
-          notifications.map((notification) => (
+        {localNotifications.length > 0 ? (
+          localNotifications.map((notification) => (
             <div
               key={notification.id}
               className={`flex flex-col p-4 hover:bg-gray-50 cursor-pointer transition-all relative ${
@@ -77,22 +101,32 @@ const NotificationPanel: React.FC<NotificationProps> = ({
                 </p>
 
                 {/* Nếu là event_invite thì hiển thị Accept/Decline */}
-                {notification.type === "event_invited" && notification.eventId && (
-                  <div className="flex gap-2 mt-3">
-                    <button
-                      onClick={() => consfirmEvent(notification.eventId? notification.eventId: 0)}
-                      className="px-3 py-1 text-sm rounded-lg bg-green-500 text-white hover:bg-green-600 transition"
-                    >
-                      Accept
-                    </button>
-                    <button
-                      onClick={() => onDeclineInvite?.(notification.id)}
-                      className="px-3 py-1 text-sm rounded-lg bg-red-500 text-white hover:bg-red-600 transition"
-                    >
-                      Decline
-                    </button>
-                  </div>
-                )}
+                {notification.type === "event_invited" &&
+                  notification.eventId &&
+                  !notification.status && (
+                    <div className="flex gap-2 mt-3">
+                      <button
+                        onClick={() =>
+                          confirmEventClick(
+                            notification.eventId ? notification.eventId : 0
+                          )
+                        }
+                        className="px-3 py-1 text-sm rounded-lg bg-green-500 text-white hover:bg-green-600 transition"
+                      >
+                        Accept
+                      </button>
+                      <button
+                        onClick={() =>
+                          rejectEventClick(
+                            notification.eventId ? notification.eventId : 0
+                          )
+                        }
+                        className="px-3 py-1 text-sm rounded-lg bg-red-500 text-white hover:bg-red-600 transition"
+                      >
+                        Decline
+                      </button>
+                    </div>
+                  )}
               </div>
 
               {!notification.isRead && notification.type !== "event_invite" && (

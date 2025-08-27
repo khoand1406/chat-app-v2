@@ -6,6 +6,7 @@ import { NotificationServices } from "../services/notification.services";
 import { threadId } from "worker_threads";
 import { User } from "../models/user.model";
 import { Attendance } from "../models/attendence.model";
+import { Notification } from "../models/notification.model";
 
 export class EventController {
   private readonly _EventServices: EventServices;
@@ -236,6 +237,10 @@ export class EventController {
         return response.status(400).json({ error: "Not found eventId" });
       const event = await this._EventServices.confirmEvents(userId, eventId);
 
+       await Notification.update(
+      { status: "confirmed" }, 
+      { where: { eventId, userId } }
+    );
       const participants = await Attendance.findAll({
         where: { eventId },
         attributes: ["userId"],
@@ -264,14 +269,22 @@ export class EventController {
   };
 
   rejectEvent = async (request: Request, response: Response) => {
+    const io= request.app.get("io");
     try {
       const userId = (request as any).userId;
       if (!userId || isNaN(userId))
         return response.status(400).json({ error: "Invalid userId" });
-      const eventId = request.body;
+      const { eventId}  = request.body;
       if (!eventId)
         return response.status(400).json({ error: "Not found eventId" });
-      await this._EventServices.rejectEvents(userId, eventId);
+      const event= await this._EventServices.rejectEvents(userId, eventId);
+
+      await Notification.update(
+      { status: "rejected" }, 
+      { where: { eventId, userId } }
+    );
+      
+
       return response.status(200).json({ success: true });
     } catch (error) {
       console.log(error);

@@ -1,4 +1,4 @@
-import { CONFIRM_EVENTS, EVENTS, EVENTS_DETAILS } from "../constants/ApiContants";
+import { CONFIRM_EVENTS, EVENTS, EVENTS_DETAILS, REJECT_EVENTS } from "../constants/ApiContants";
 import type { EventRes, EventResponse } from "../models/interfaces/services";
 import ApiHelper from "../utils/ApiHelper"
 
@@ -30,6 +30,19 @@ export const confirmEvent= async(eventId: number): Promise<EventRes>=> {
     try {
         const apiHelper= new ApiHelper();
         const result= await apiHelper.post(CONFIRM_EVENTS, {eventId: eventId});
+        return result;
+    } catch (error) {
+        if(error instanceof Error){
+            throw new Error(error.message);
+        }
+        throw error;
+    }
+}
+
+export const rejectEvent= async(eventId: number): Promise<EventRes>=>{
+    try {
+        const apiHelper= new ApiHelper();
+        const result= await apiHelper.post(REJECT_EVENTS, {eventId: eventId});
         return result;
     } catch (error) {
         if(error instanceof Error){
