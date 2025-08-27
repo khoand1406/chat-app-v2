@@ -27,3 +27,4 @@ export const READ_ALL= '/api/notifications/read-all'
 export const EVENTS= '/api/events'
 export const EVENTS_DETAILS= (eventId: number)=> `/api/events/${eventId}`
 export const CREATE_EVENTS= `/api/events/create`
+export const CONFIRM_EVENTS= `/api/events/confirm`

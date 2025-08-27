@@ -3,7 +3,8 @@ import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import Layout from "../layout/Layout";
 import { getEventDetail, getEvents } from "../services/eventServices";
 
-import { format, startOfWeek, endOfWeek } from "date-fns";
+import { endOfWeek, format, startOfWeek } from "date-fns";
+import { ToastContainer } from "react-toastify";
 import CreateEventModal from "../components/CreateEventsModals";
 import { socket } from "../socket/config";
 
@@ -177,7 +178,7 @@ const Calendar: React.FC = () => {
   } | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedDateTime, setSelectedDateTime] = useState<Date | null>(null);
-
+  const userId= localStorage.getItem("userId");
   /* Load events when date/viewMode changes */
   useEffect(() => {
     let startDate: Date;
@@ -229,18 +230,20 @@ const Calendar: React.FC = () => {
   };
 
 useEffect(() => {
+  if (!socket.connected) {
+    socket.connect();
+  }
 
-   if (!socket.connected) {
-      socket.connect();
-    }
-    
-    socket.on("connect", () => {
-      console.log("✅ Socket connected:", socket.id);
-    });
-  socket.on("disconnect", () => {
-    console.log("Socket disconnected");
-  });
-  socket.on("event:created", (newEvent) => {
+  const handleConnect = () => {
+    console.log("✅ Socket connected:", socket.id);
+    socket.emit("join", userId); // chỉ emit khi connect xong
+  };
+
+  const handleDisconnect = () => {
+    console.log("❌ Socket disconnected");
+  };
+
+  const handleEventCreated = (newEvent: any) => {
     const mapped = {
       id: newEvent.id,
       content: newEvent.content,
@@ -249,12 +252,38 @@ useEffect(() => {
       end: new Date(newEvent.endDate),
     };
     setEvents((prev) => [...prev, mapped]);
-  });
-
-  return () => {
-    socket.off("event:created");
   };
-}, []);
+
+const handleEventConfirmed = (newEvent: any) => {
+  setEvents((prevEvents) => {
+    const exists = prevEvents.some((e) => e.id === newEvent.id);
+
+    if (exists) {
+      
+      return prevEvents.map((e) =>
+        e.id === newEvent.id ? { ...e, status: "confirmed" } : e
+      );
+    } else {
+      
+      return [...prevEvents, newEvent];
+    }
+  });
+};
+
+
+  socket.on("connect", handleConnect);
+  socket.on("disconnect", handleDisconnect);
+  socket.on("event:created", handleEventCreated);
+  socket.on("event:confirmed", handleEventConfirmed);
+
+ 
+  return () => {
+    socket.off("connect", handleConnect);
+    socket.off("disconnect", handleDisconnect);
+    socket.off("event:created", handleEventCreated);
+    socket.off("event:confirmed", handleEventConfirmed )
+  };
+}, [userId]); 
 
   const handleEventClick = async (
     event: CalendarEvent,
@@ -401,6 +430,7 @@ useEffect(() => {
             </div>
           </div>
         )}
+
         <CreateEventModal
           isOpen={isCreateModalOpen}
           onClose={() => setIsCreateModalOpen(false)}
@@ -409,6 +439,7 @@ useEffect(() => {
         />
         ;
       </div>
+       <ToastContainer position="top-right" autoClose={3000} />
     </Layout>
   );
 };

@@ -47,6 +47,7 @@ export class EventServices {
         description: model.description,
         startDate: startUtc,
         endDate: endUtc,
+        creatorId: currentUserId
       };
       const event = await Events.create(createPayload, { transaction });
       if (!event || !event.id) throw new Error("Failed to create event");
@@ -56,7 +57,7 @@ export class EventServices {
           new CreateAttendenceRequest({
             eventId: event.id,
             userId: item,
-            status: "pending",
+            status: item===currentUserId? "confirmed": "pending",
           })
       );
       const result = await Attendance.bulkCreate(bulkCreatePayload, {
@@ -88,7 +89,7 @@ export class EventServices {
         include: [
           {
             model: Attendance,
-            where: { userId: currentUserId },
+            where: { userId: currentUserId, status: "confirmed" },
             required: true,
           },
         ],
@@ -292,7 +293,7 @@ export class EventServices {
     throw new Error("Failed to update event: " + error);
   }
 };
-  confirmEvents= async(currentUserId: number, eventId: number): Promise<void> => {
+  confirmEvents= async(currentUserId: number, eventId: number): Promise<EventResponse> => {
     const transaction= await sequelize.transaction();
     try {
       const event= await Events.findByPk(eventId, {transaction});
@@ -301,7 +302,10 @@ export class EventServices {
       if(!existingAttendence) throw new Error("Invitation not found");
       
       await existingAttendence.update({ status: "confirmed" }, { transaction });
+
+
       await transaction.commit();
+      return event;
 
     } catch (error) {
       console.log(error);

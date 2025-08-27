@@ -52,7 +52,10 @@ export class NotificationServices{
                 userId: userId,
                 isRead: false,
                 createdAt: new Date(),
+                type: model.type,
+                eventId: model.eventId
         }));
+            
             const result= await Notification.bulkCreate(listNotificationCreate, {transaction});
 
             await transaction.commit();

@@ -5,21 +5,38 @@ import {
 } from "react-icons/io5";
 import type { Notification } from "../models/interfaces/Notification";
 import { formatDate } from "../utils/FormatDate";
+import { confirmEvent } from "../services/eventServices";
+import { toast, ToastContainer } from "react-toastify";
 
 interface NotificationProps {
   isOpen: boolean;
-  notifications: Notification[]
-  unread: number
-
+  notifications: Notification[];
+  unread: number;
+  onAcceptInvite?: (notificationId: number) => void;
+  onDeclineInvite?: (notificationId: number) => void;
 }
 
-const NotificationPanel: React.FC<NotificationProps> = ({ isOpen, notifications }) => {
-  
+const NotificationPanel: React.FC<NotificationProps> = ({
+  isOpen,
+  notifications,
+  onDeclineInvite,
+}) => {
+   const consfirmEvent= async (eventId: number)=> {
+    try {
+      await confirmEvent(eventId);
+      toast.success("Add event successfully!");
+    } catch (error) {
+      toast.error("Failed to mark notifications as read");
+      console.error(error);
+    }
+  }
 
-  if (!isOpen) return null; // Nếu đóng panel thì không render
+  if (!isOpen) return null;
+
+
 
   return (
-    <div className="fixed right-4 top-4 h-[90vh] w-[380px] bg-white rounded-xl shadow-lg border border-gray-100 flex flex-col">
+    <div className="fixed right-4 top-4 h-[90vh] w-[380px] bg-white rounded-xl shadow-lg border border-gray-100 flex flex-col z-[2000]">
       {/* Header */}
       <div className="p-4 border-b border-gray-100 flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -37,16 +54,16 @@ const NotificationPanel: React.FC<NotificationProps> = ({ isOpen, notifications 
           notifications.map((notification) => (
             <div
               key={notification.id}
-              className={`flex items-start p-4 hover:bg-gray-50 cursor-pointer transition-all relative ${
+              className={`flex flex-col p-4 hover:bg-gray-50 cursor-pointer transition-all relative ${
                 notification.isRead ? "bg-gray-50" : "bg-white"
               }`}
-              // onClick={() => markAsRead(notification.id)}
             >
-              {notification.isRead && (
-                <div className="absolute left-0 top-0 w-1 h-full bg-[#6264A7] rounded-l-lg" />
+              {/* line màu loại noti */}
+              {notification.type === "message" && (
+                <div className="absolute left-0 top-0 w-1 h-full bg-[#3d43f3] rounded-l-lg" />
               )}
-              
-              <div className="ml-3 flex-1">
+
+              <div className="flex-1">
                 <div className="flex items-start justify-between">
                   <h3 className="font-semibold text-gray-900">
                     {notification.title}
@@ -58,9 +75,28 @@ const NotificationPanel: React.FC<NotificationProps> = ({ isOpen, notifications 
                 <p className="text-sm text-gray-600 mt-1">
                   {notification.content}
                 </p>
+
+                {/* Nếu là event_invite thì hiển thị Accept/Decline */}
+                {notification.type === "event_invited" && notification.eventId && (
+                  <div className="flex gap-2 mt-3">
+                    <button
+                      onClick={() => consfirmEvent(notification.eventId? notification.eventId: 0)}
+                      className="px-3 py-1 text-sm rounded-lg bg-green-500 text-white hover:bg-green-600 transition"
+                    >
+                      Accept
+                    </button>
+                    <button
+                      onClick={() => onDeclineInvite?.(notification.id)}
+                      className="px-3 py-1 text-sm rounded-lg bg-red-500 text-white hover:bg-red-600 transition"
+                    >
+                      Decline
+                    </button>
+                  </div>
+                )}
               </div>
-              {!notification.isRead && (
-                <IoCheckmarkCircle className="text-gray-400 ml-2 mt-1" />
+
+              {!notification.isRead && notification.type !== "event_invite" && (
+                <IoCheckmarkCircle className="text-gray-400 ml-auto mt-1" />
               )}
             </div>
           ))
@@ -69,6 +105,7 @@ const NotificationPanel: React.FC<NotificationProps> = ({ isOpen, notifications 
             <p>No new notifications</p>
           </div>
         )}
+        <ToastContainer></ToastContainer>
       </div>
     </div>
   );

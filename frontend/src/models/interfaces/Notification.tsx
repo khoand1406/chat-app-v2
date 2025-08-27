@@ -17,6 +17,8 @@ export interface Notification{
     userId: number,
     createdAt:Date
     isRead: boolean
+    type: string
+    eventId: number | null
 
 
 }

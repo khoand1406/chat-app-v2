@@ -22,6 +22,13 @@ export class Notification extends Model{
     @Column({type:DataType.INTEGER, allowNull: false})
     userId!: number
 
+    @Column({ type: DataType.STRING, allowNull: false })
+    type!: string;
+
+  // Nếu thông báo liên quan đến event -> lưu eventId
+    @Column({ type: DataType.INTEGER, allowNull: true })
+    eventId!: number | null;
+
     @BelongsTo(()=> User)
     user!: User
 

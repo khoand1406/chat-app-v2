@@ -92,6 +92,7 @@ export class MessageController {
           content: `${fullMessage?.user.userName}: ${fullMessage?.content}`,
           userId: userId,
           createdAt: new Date(),
+          type: "message"
         });
 
         for (const uid of allMemberIds) {
@@ -102,6 +103,7 @@ export class MessageController {
             conversationId: conversation.id,
             senderId: userId,
             createdAt: new Date(),
+            type: "message"
           });
         }
       } else {
@@ -118,10 +120,13 @@ export class MessageController {
           content: `${fullMessage?.user.userName}: ${fullMessage?.content}`,
           userId: 0,
           createdAt: new Date(),
+          type: "message",
+          
         });
         for (const uid of allMemberIds) {
           if (uid === userId) continue;
           io.to(`user_${uid}`).emit("newNotification", {
+            id: Date.now() + "_" + uid,
             title: "New Message",
             content: `${user?.userName} has sent messages to ${conversation?.name}`,
             conversationId: conversation?.id,

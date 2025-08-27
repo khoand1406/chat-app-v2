@@ -6,6 +6,7 @@ export interface EventResponse{
     description: string
     startDate: Date
     endDate: Date
+    creatorId: number
 }
 
 export interface EventDetailResposne{
@@ -15,4 +16,8 @@ export interface EventDetailResposne{
     startDate:Date
     endDate: Date
     unConfirmed: IUser[]
+}
+
+export interface EventRes{
+    success: boolean
 }

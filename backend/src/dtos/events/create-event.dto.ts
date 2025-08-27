@@ -16,6 +16,8 @@ export class CreateEventResponse{
     startDate!: Date
     endDate!: Date
     invitedParticipants: Attendance[]
+    creatorId!: number
+
     constructor(data: any, invited: Attendance[]= []){
         this.id= data.id
         this.content= data.content,
@@ -23,6 +25,7 @@ export class CreateEventResponse{
         this.startDate= data.startDate,
         this.endDate= data.endDate,
         this.invitedParticipants= invited
+        this.creatorId= data.creatorId;
     }
 }
 
@@ -32,13 +35,14 @@ export class EventResponse{
     description!: string
     startDate!: Date
     endDate!: Date
+    creatorId!: number
     constructor(data: any){
         this.id= data.id,
-        
         this.content= data.content,
         this.description= data.description,
         this.startDate= data.startDate,
         this.endDate= data.endDate
+        this.creatorId= data.creatorId
     }
 }
 
@@ -49,6 +53,7 @@ export class EventDetailResponse{
     startDate!:Date
     endDate!: Date
     unConfirmed!: IUser[]
+    creatorId!:number
     constructor(event: EventResponse, unConfirm: IUser[] = [] ){
         this.id= event.id,
         this.content= event.content
@@ -56,6 +61,7 @@ export class EventDetailResponse{
         this.startDate= event.startDate
         this.endDate= event.endDate
         this.unConfirmed= unConfirm
+        this.creatorId= event.creatorId
     }
 }
 

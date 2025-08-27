@@ -5,6 +5,7 @@ import { socket } from "../socket/config";
 import NavBar from "../components/NavBar";
 import type { Notification } from "../models/interfaces/Notification";
 
+
 interface layoutProps{
     children: ReactNode,
     
@@ -55,6 +56,8 @@ const Layout: React.FC<layoutProps>= ({children})=>{
       console.error(err);
     }
   };
+
+ 
 
   return (
     <div className="flex h-screen w-screen overflow-hidden">

@@ -5,12 +5,15 @@ export class NotificationCreateRequest{
     content!: string
     userId!: number
     createdAt!: Date
+    type!: string
+    eventId?: number
 
     constructor(title: string = '', content: string= '', userId: number= 0, createAt: Date= new Date()){
         this.title= title,
         this.content= content,
         this.userId= userId,
         this.createdAt= createAt
+        
     }
     
 }

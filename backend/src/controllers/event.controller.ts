@@ -2,11 +2,21 @@ import { Request, Response } from "express";
 import { EventServices } from "../services/event.services";
 import { Events } from "../models/event.model";
 import { sequelize } from "../database/config";
+import { NotificationServices } from "../services/notification.services";
+import { threadId } from "worker_threads";
+import { User } from "../models/user.model";
+import { Attendance } from "../models/attendence.model";
 
 export class EventController {
   private readonly _EventServices: EventServices;
-  constructor(private readonly eventServices?: EventServices) {
+  private readonly _NotificationServices: NotificationServices;
+  constructor(
+    private readonly eventServices?: EventServices,
+    private readonly notificationService?: NotificationServices
+  ) {
     this._EventServices = eventServices ?? new EventServices();
+    this._NotificationServices =
+      notificationService ?? new NotificationServices();
   }
   getEvents = async (request: Request, response: Response) => {
     try {
@@ -83,23 +93,19 @@ export class EventController {
   };
 
   createEvent = async (request: Request, response: Response) => {
-    const io= request.app.get("io");
+    const io = request.app.get("io");
     try {
       const userId = (request as any).userId;
       if (!userId || isNaN(userId))
         return response.status(400).json({ error: "Invalid userId" });
 
-      const {
-        
-        content,
-        description,
-        startDate,
-        endDate,
-        participantIds,
-      } = request.body;
+      const user = await User.findByPk(userId);
+
+      const { content, description, startDate, endDate, participantIds } =
+        request.body;
       const start = new Date(startDate);
       const end = new Date(endDate);
-      if ( !startDate || !endDate) {
+      if (!startDate || !endDate) {
         return response.status(400).json({ error: "Missing required fields" });
       }
       if (start >= end) {
@@ -109,7 +115,6 @@ export class EventController {
       }
 
       const createPayload = {
-        
         content: content,
         description: description,
         startDate: startDate,
@@ -121,6 +126,36 @@ export class EventController {
         userId
       );
       io.emit("event:created", result);
+      const targetParticipants = participantIds.filter(
+        (pid: number) => pid !== userId
+      );
+
+      const notifications = {
+        title: `New notification`,
+        content: `You have been invited to event: ${content} by ${user?.userName}`,
+        userId: userId,
+        createdAt: new Date(),
+        type: "event_invited",
+        eventId: result.id,
+      };
+
+      await this._NotificationServices.sendUsersNotification(
+        targetParticipants,
+        notifications
+      );
+
+      targetParticipants.forEach((pid: number) => {
+        io.to(`user_${pid}`).emit("newNotification", {
+          id: Date.now() + "_" + pid,
+          title: "New Events Incoming",
+          content: `You have been invited to event: ${content} by ${user?.userName}`,
+          userId: pid,
+          createdAt: new Date(),
+          type: "event_invited",
+          eventId: result.id,
+        });
+      });
+
       return response.status(201).json(result);
     } catch (error) {
       console.log(error);
@@ -191,14 +226,33 @@ export class EventController {
   };
 
   confirmEvent = async (request: Request, response: Response) => {
+    const io = request.app.get("io");
     try {
       const userId = (request as any).userId;
       if (!userId || isNaN(userId))
         return response.status(400).json({ error: "Invalid userId" });
-      const eventId = request.body;
+      const { eventId } = request.body;
       if (!eventId)
         return response.status(400).json({ error: "Not found eventId" });
-      await this._EventServices.confirmEvents(userId, eventId);
+      const event = await this._EventServices.confirmEvents(userId, eventId);
+
+      const participants = await Attendance.findAll({
+        where: { eventId },
+        attributes: ["userId"],
+      });
+      const participantIds = participants.map((item) => item.userId);
+      participantIds.forEach((element) => {
+        io.to(`user_${element}`).emit("event:confirmed", {
+          id: event.id,
+          content: event.content,
+          description: event.description,
+          startDate: event.startDate,
+          endDate: event.endDate,
+          confirmedBy: userId,
+          status: "confirmed",
+        });
+      });
+
       return response.status(200).json({ success: true });
     } catch (error) {
       console.log(error);
