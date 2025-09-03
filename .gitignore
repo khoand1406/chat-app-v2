@@ -66,3 +66,4 @@ build/
 # TypeScript build (nếu dùng)
 *.tsbuildinfo
 
+*.pem
