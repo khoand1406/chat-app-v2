@@ -1,4 +1,4 @@
-export const BaseUrl = 'http://localhost:3000';
+export const BaseUrl = 'https://localhost:3000';
 
 export const LOGIN_PATH = `/api/auth/login`;
 export const REGISTER_PATH = `/api/auth/register`;

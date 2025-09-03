@@ -23,7 +23,7 @@ export class AuthController{
             const user = await this._userService.authenticateUser(email, passwordHash);
             console.log("Authenticated user:", user);
             
-            const token = jwt.sign({ email }, secretKey, { expiresIn:  '14d' });
+            const token = jwt.sign({ id: user.id, email: user.email }, secretKey, { expiresIn:  '14d' });
             await Token.create({
                 userId: user.id,
                 token: token

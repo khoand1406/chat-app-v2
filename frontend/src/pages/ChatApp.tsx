@@ -35,6 +35,7 @@ const ChatApp = () => {
   }, []);
 
   useEffect(() => {
+    localStorage.debug = "socket.io-client:socket";
     if (!userId) return;
     socket.connect();
     socket.emit("join", userId);

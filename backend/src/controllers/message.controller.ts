@@ -11,6 +11,7 @@ import { User } from "../models/user.model";
 import { UserMessages } from "../models/usermessages";
 import { NotificationServices } from "../services/notification.services";
 import { NotificationCreateRequest } from "../interfaces/notification.interface";
+import { sendEmail } from "../services/mail.services";
 export class MessageController {
   private _messageService: MessageService;
   private _notificationService: NotificationServices;
@@ -105,6 +106,21 @@ export class MessageController {
             createdAt: new Date(),
             type: "message"
           });
+
+          const recipient = await User.findByPk(uid, {
+          attributes: ["email", "userName"],
+        });
+
+  if (recipient?.email) {
+    await sendEmail(
+      recipient.email,
+      "New Message Notification",
+      `${user?.userName} sent: ${data.content}`,
+      `<p><b>${user?.userName}</b> sent a new message in <b>${conversation?.name}</b>:</p>
+       <blockquote>${data.content}</blockquote>
+       <p>Open the app to reply.</p>`
+    );
+  }
         }
       } else {
         const members = await UserConversation.findAll({
@@ -123,6 +139,7 @@ export class MessageController {
           type: "message",
           
         });
+
         for (const uid of allMemberIds) {
           if (uid === userId) continue;
           io.to(`user_${uid}`).emit("newNotification", {
@@ -133,6 +150,21 @@ export class MessageController {
             senderId: userId,
             createdAt: new Date(),
           });
+          
+          const recipient= await User.findByPk(uid, {
+            attributes: ["email", "userName"],
+          });
+          if(recipient?.email){
+            await sendEmail(
+              recipient.email,
+              "New Message Notification",
+              `${user?.userName} sent: ${data.content}`,
+              `<p><b>${user?.userName}</b> sent a new message for you </b>:</p>
+               <blockquote>${data.content}</blockquote>
+               <p>Open the app to reply.</p>`
+            );
+          }
+
         }
       }
 
